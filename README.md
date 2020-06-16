@@ -8,7 +8,7 @@ proposal.
 
 The code was extracted (with permission) from the Mezzano repository.
 
-[LICENSE-BSD]https://github.com/s-expressionists/Cyclosis/blob/master/LICENSE-BSD.
+[LICENSE-BSD]:https://github.com/s-expressionists/Cyclosis/blob/master/LICENSE-BSD.
 
 ## License
 
