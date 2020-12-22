@@ -1,67 +1,6 @@
 ;;;; Definitions of Gray streams classes and functions.
 
-(defpackage :mezzano.gray
-  (:use :cl)
-  (:local-nicknames (:sys.int :mezzano.internals))
-  (:export
-   ;; Gray Streams classes.
-   #:fundamental-stream
-   #:fundamental-input-stream
-   #:fundamental-output-stream
-   #:fundamental-binary-stream
-   #:fundamental-character-stream
-   #:fundamental-binary-input-stream
-   #:fundamental-binary-output-stream
-   #:fundamental-character-input-stream
-   #:fundamental-character-output-stream
-   ;; Methods common to all streams.
-   #:stream-element-type
-   #:close
-   #:stream-file-position
-   #:stream-file-length
-   #:stream-file-string-length
-   #:open-stream-p
-   #:input-stream-p
-   #:output-stream-p
-   #:interactive-stream-p
-   #:stream-external-format
-   ;; Input stream methods.
-   #:stream-clear-input
-   #:stream-read-sequence
-   ;; Output stream methods.
-   #:stream-clear-output
-   #:stream-finish-output
-   #:stream-force-output
-   #:stream-write-sequence
-   ;;; Binary stream methods.
-   #:stream-read-byte
-   #:stream-read-byte-no-hang
-   #:stream-write-byte
-   #:stream-listen-byte
-   ;;; Character input stream methods.
-   #:stream-peek-char
-   #:stream-read-char-no-hang
-   #:stream-read-char
-   #:stream-read-line
-   #:stream-listen
-   #:stream-unread-char
-   ;;; Character output stream methods.
-   #:stream-advance-to-column
-   #:stream-fresh-line
-   #:stream-line-column
-   #:stream-line-length
-   #:stream-start-line-p
-   #:stream-terpri
-   #:stream-write-char
-   #:stream-write-string
-   ;; Extensions.
-   #:unread-char-mixin
-   #:stream-display
-   #:stream-open-p
-   #:external-format-string-length
-   ))
-
-(in-package :mezzano.gray)
+(cl:in-package :cyclosis)
 
 ;;; The standard stream class.
 
@@ -141,7 +80,6 @@
 (defgeneric stream-terpri (stream))
 (defgeneric stream-write-char (stream character))
 (defgeneric stream-write-string (stream string &optional start end))
-
 (defgeneric stream-display (stream object))
 
 ;;; Default Gray methods
@@ -225,11 +163,13 @@
 
 (defgeneric external-format-string-length (external-format string))
 
-(defmethod external-format-string-length ((external-format (eql :default)) string)
-  (length (sys.int::encode-utf-8-string string :eol-style :lf)))
+;; TODO
+;; (defmethod external-format-string-length ((external-format (eql :default)) string)
+;;   (length (sys.int::encode-utf-8-string string :eol-style :lf)))
 
-(defmethod external-format-string-length ((external-format (eql :utf-8)) string)
-  (length (sys.int::encode-utf-8-string string :eol-style :lf)))
+;; TODO
+;; (defmethod external-format-string-length ((external-format (eql :utf-8)) string)
+;;   (length (sys.int::encode-utf-8-string string :eol-style :lf)))
 
 (defmethod stream-file-string-length ((stream fundamental-character-output-stream) string)
   (external-format-string-length (stream-external-format stream) string))
@@ -282,21 +222,21 @@
              t))))
 
 (defmethod stream-advance-to-column ((stream fundamental-character-output-stream) column)
-  (let ((current (sys.int::line-column stream)))
+  (let ((current (line-column stream)))
     (when current
       (dotimes (i (- column current))
         (write-char stream #\Newline))
       t)))
 
 (defmethod stream-fresh-line ((stream fundamental-character-output-stream))
-  (cond ((sys.int::start-line-p stream)
+  (cond ((start-line-p stream)
          nil)
         (t
          (terpri stream)
          t)))
 
 (defmethod stream-start-line-p ((stream fundamental-character-output-stream))
-  (let ((column (sys.int::line-column stream)))
+  (let ((column (line-column stream)))
     (and column (zerop column))))
 
 (defmethod stream-terpri ((stream fundamental-character-output-stream))
