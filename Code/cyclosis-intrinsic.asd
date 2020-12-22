@@ -1,9 +1,9 @@
 (cl:in-package #:asdf-user)
 
-(defsystem #:cyclosis
+(defsystem #:cyclosis-intrinsic
   :serial t
   :components
-  ((:file "packages")
+  ((:file "packages-intrinsic")
    (:file "gray-streams")
    (:file "standard-streams")
    (:file "stream")))

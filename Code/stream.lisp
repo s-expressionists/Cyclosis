@@ -22,8 +22,6 @@
   "Default output stream.")
 (defparameter *trace-output* (make-synonym-stream '*terminal-io*))
 
-(setf (symbol-global-value '*terminal-io*) *cold-stream*)
-
 ;;; Cold stream methods.
 
 (defparameter *cold-stream-is-line-buffered* t)
@@ -31,48 +29,47 @@
 ;; that GET-COLD-STREAM-BUFFER can flush any dead entries.
 (defparameter *cold-stream-buffers* '())
 
-;;; FIXME: remove Mezzano-specific references.
-(defparameter *cold-stream-lock* (mezzano.supervisor:make-mutex '*cold-stream-buffers*))
+;; (defparameter *cold-stream-lock* (mezzano.supervisor:make-mutex '*cold-stream-buffers*))
 
 (defstruct cold-stream-buffer
   thread
   data
   column)
 
+(defun get-cold-stream-buffer ()
+  ;; (mezzano.supervisor:with-mutex (*cold-stream-lock*))
+  (do ((self t ;; X(mezzano.supervisor:current-thread)
+             )
+       (entry nil)
+       (i *cold-stream-buffers*)
+       (prev nil))
+      ((endp i)
+       (when (not entry)
+         (setf entry (make-cold-stream-buffer
+                      :thread (make-weak-pointer self)
+                      :data (make-array 100
+                                        :element-type 'character
+                                        :fill-pointer 0
+                                        :adjustable t
+                                        :area :wired)
+                      :column 0))
+         (push entry *cold-stream-buffers*))
+       entry)
+    (let ((thread (weak-pointer-value (cold-stream-buffer-thread (first i)))))
+      (when (eql thread self)
+        (setf entry (first i)))
+      (cond (thread
+             (setf prev i))
+            (t
+             ;; Entry is dead, flush & remove it.
+             (if prev
+                 (setf (rest prev) (rest i))
+                 (setf *cold-stream-buffers* (rest i)))))
+      (setf i (rest i)))))
+
 (defmacro with-cold-stream-buffer ((buffer) &body body)
   `(let ((buffer (get-cold-stream-buffer)))
      ,@body))
-
-;;; FIXME: remove Mezzano-specific references.
-(defun get-cold-stream-buffer ()
-  (mezzano.supervisor:with-mutex (*cold-stream-lock*)
-    (do ((self (mezzano.supervisor:current-thread))
-         (entry nil)
-         (i *cold-stream-buffers*)
-         (prev nil))
-        ((endp i)
-         (when (not entry)
-           (setf entry (make-cold-stream-buffer
-                        :thread (make-weak-pointer self)
-                        :data (make-array 100
-                                          :element-type 'character
-                                          :fill-pointer 0
-                                          :adjustable t
-                                          :area :wired)
-                        :column 0))
-           (push entry *cold-stream-buffers*))
-         entry)
-      (let ((thread (weak-pointer-value (cold-stream-buffer-thread (first i)))))
-        (when (eql thread self)
-          (setf entry (first i)))
-        (cond (thread
-               (setf prev i))
-              (t
-               ;; Entry is dead, flush & remove it.
-               (if prev
-                   (setf (rest prev) (rest i))
-                   (setf *cold-stream-buffers* (rest i)))))
-        (setf i (rest i))))))
 
 (defmethod stream-read-char ((stream cold-stream))
   (or (cold-read-char stream) :eof))
@@ -309,7 +306,7 @@
            (loop
               for ch = (read-char s eof-error-p nil recursive-p)
               until (or (not ch)
-                        (not (sys.int::whitespace[2]p ch)))
+                        (not (char= ch #\Space)))
               finally (return (cond (ch
                                      (unread-char ch s)
                                      ch)

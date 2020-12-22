@@ -1,6 +1,6 @@
-(cl:in-package :cyclosis)
-
 ;;;; Implementations of the standard stream types.
+
+(cl:in-package :cyclosis)
 
 (defclass file-stream (stream) ())
 (defclass string-stream (stream) ())
@@ -517,7 +517,7 @@
        ;; Reached end of this stream. Pop streams.
        (pop (slot-value stream 'streams)))))
 
-;;; String output stream, with-output-to-string, and write-to-string.
+;;; String output stream and with-output-to-string.
 
 (defclass string-output-stream (fundamental-character-output-stream
                                 string-stream)
@@ -609,49 +609,7 @@
            ,@real-body
            (get-output-stream-string ,var)))))
 
-(defun write-to-string (object &key
-                                 (array *print-array*)
-                                 (base *print-base*)
-                                 (case *print-case*)
-                                 (circle *print-circle*)
-                                 (escape *print-escape*)
-                                 (gensym *print-gensym*)
-                                 (length *print-length*)
-                                 (level *print-level*)
-                                 (lines *print-lines*)
-                                 (miser-width *print-miser-width*)
-                                 (pprint-dispatch *print-pprint-dispatch*)
-                                 (pretty *print-pretty*)
-                                 (radix *print-radix*)
-                                 (readably *print-readably*)
-                                 (right-margin *print-right-margin*))
-  (with-output-to-string (s)
-    (write object :stream s
-           :array array
-           :base base
-           :case case
-           :circle circle
-           :escape escape
-           :gensym gensym
-           :length length
-           :level level
-           :lines lines
-           :miser-width miser-width
-           :pprint-dispatch pprint-dispatch
-           :pretty pretty
-           :radix radix
-           :readably readably
-           :right-margin right-margin)))
-
-(defun princ-to-string (object)
-  (with-output-to-string (s)
-    (princ object s)))
-
-(defun prin1-to-string (object)
-  (with-output-to-string (s)
-    (prin1 object s)))
-
-;;; String input stream, with-input-from-string, and read-from-string.
+;;; String input stream and with-input-from-string.
 
 (defclass string-input-stream (fundamental-character-input-stream
                                unread-char-mixin
@@ -697,12 +655,3 @@
         (t
          `(with-open-stream (,var (make-string-input-stream ,string ,start ,end))
             ,@body))))
-
-(defun read-from-string (string &optional (eof-error-p t) eof-value &key (start 0) end preserve-whitespace)
-  (let (index)
-    (values
-     (with-input-from-string (stream string :start start :end end :index index)
-       (if preserve-whitespace
-           (read-preserving-whitespace stream eof-error-p eof-value)
-           (read stream eof-error-p eof-value)))
-     index)))
