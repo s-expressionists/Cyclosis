@@ -598,16 +598,12 @@
            0))))
 
 (defmacro with-output-to-string ((var &optional string-form &key (element-type ''character)) &body body)
-  (multiple-value-bind (real-body declares)
-      (parse-declares body)
-    (if string-form
-        `(with-open-stream (,var (make-string-output-stream :string ,string-form :element-type ,element-type))
-           (declare ,@declares)
-           ,@real-body)
-        `(with-open-stream (,var (make-string-output-stream :element-type ,element-type))
-           (declare ,@declares)
-           ,@real-body
-           (get-output-stream-string ,var)))))
+  (if string-form
+      `(with-open-stream (,var (make-string-output-stream :string ,string-form :element-type ,element-type))
+         ,@body)
+      `(with-open-stream (,var (make-string-output-stream :element-type ,element-type))
+         ,@body
+         (get-output-stream-string ,var))))
 
 ;;; String input stream and with-input-from-string.
 
@@ -646,9 +642,9 @@
 (defmacro with-input-from-string ((var string &key (start 0) end index) &body body)
   (cond (index
          (multiple-value-bind (body-forms declares)
-             (parse-declares body)
+             (alexandria:parse-body body)
            `(with-open-stream (,var (make-string-input-stream ,string ,start ,end))
-              (declare ,@declares)
+              ,@declares
               (multiple-value-prog1
                   (progn ,@body-forms)
                 (setf ,index (string-input-stream-position ,var))))))

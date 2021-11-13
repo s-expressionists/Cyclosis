@@ -80,9 +80,22 @@
 (defgeneric stream-terpri (stream))
 (defgeneric stream-write-char (stream character))
 (defgeneric stream-write-string (stream string &optional start end))
+(defgeneric streamp (stream))
+
+;;; Generic functions for Gray Stream extensions
+
 (defgeneric stream-display (stream object))
+(defgeneric stream-peek-char-skip-whitespace (stream))
 
 ;;; Default Gray methods
+
+(defmethod streamp (stream)
+  (declare (ignore stream))
+  nil)
+
+(defmethod streamp ((stream stream))
+  (declare (ignore stream))
+  t)
 
 (defmethod stream-display (stream (object fundamental-character-output-stream))
   (format stream "~S" object))
@@ -200,6 +213,12 @@
     (cond ((eql ch :eof) :eof)
           (t (unread-char ch stream)
              ch))))
+
+(defmethod stream-peek-char-skip-whitespace ((stream fundamental-character-input-stream))
+  (loop for ch = (stream-peek-char stream)
+        while (equal ch #\Space)
+        do (stream-read-char stream)
+        finally (return ch)))
 
 (defmethod stream-read-char-no-hang ((stream fundamental-character-input-stream))
   (read-char stream nil :eof))

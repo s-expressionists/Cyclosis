@@ -2,41 +2,41 @@
 
 ;;; I/O customization variables.
 
-(defclass cold-stream (fundamental-character-input-stream
+#+(or)(defclass cold-stream (fundamental-character-input-stream
                        fundamental-character-output-stream)
   ())
 
-(defparameter *cold-stream* (make-instance 'cold-stream))
+#+(or)(defparameter *cold-stream* (make-instance 'cold-stream))
 
-(defparameter *terminal-io* *cold-stream*
+#+(or)(defparameter *terminal-io* *cold-stream*
   "A bi-directional stream connected to the user's console.")
-(defparameter *debug-io* (make-synonym-stream '*terminal-io*)
+#+(or)(defparameter *debug-io* (make-synonym-stream '*terminal-io*)
   "Interactive debugging stream.")
-(defparameter *error-output* (make-synonym-stream '*terminal-io*)
+#+(or)(defparameter *error-output* (make-synonym-stream '*terminal-io*)
   "Warning and non-interactive error stream.")
-(defparameter *query-io* (make-synonym-stream '*terminal-io*)
+#+(or)(defparameter *query-io* (make-synonym-stream '*terminal-io*)
   "User interaction stream.")
-(defparameter *standard-input* (make-synonym-stream '*terminal-io*)
+#+(or)(defparameter *standard-input* (make-synonym-stream '*terminal-io*)
   "Default input stream.")
-(defparameter *standard-output* (make-synonym-stream '*terminal-io*)
+#+(or)(defparameter *standard-output* (make-synonym-stream '*terminal-io*)
   "Default output stream.")
-(defparameter *trace-output* (make-synonym-stream '*terminal-io*))
+#+(or)(defparameter *trace-output* (make-synonym-stream '*terminal-io*))
 
 ;;; Cold stream methods.
 
-(defparameter *cold-stream-is-line-buffered* t)
+#+(or)(defparameter *cold-stream-is-line-buffered* t)
 ;; This uses a list of buffers instead of a weak hash table so
 ;; that GET-COLD-STREAM-BUFFER can flush any dead entries.
-(defparameter *cold-stream-buffers* '())
+#+(or)(defparameter *cold-stream-buffers* '())
 
 ;; (defparameter *cold-stream-lock* (mezzano.supervisor:make-mutex '*cold-stream-buffers*))
 
-(defstruct cold-stream-buffer
+#+(or)(defstruct cold-stream-buffer
   thread
   data
   column)
 
-(defun get-cold-stream-buffer ()
+#+(or)(defun get-cold-stream-buffer ()
   ;; (mezzano.supervisor:with-mutex (*cold-stream-lock*))
   (do ((self t ;; X(mezzano.supervisor:current-thread)
              )
@@ -50,8 +50,7 @@
                       :data (make-array 100
                                         :element-type 'character
                                         :fill-pointer 0
-                                        :adjustable t
-                                        :area :wired)
+                                        :adjustable t)
                       :column 0))
          (push entry *cold-stream-buffers*))
        entry)
@@ -67,27 +66,27 @@
                  (setf *cold-stream-buffers* (rest i)))))
       (setf i (rest i)))))
 
-(defmacro with-cold-stream-buffer ((buffer) &body body)
+#+(or)(defmacro with-cold-stream-buffer ((buffer) &body body)
   `(let ((buffer (get-cold-stream-buffer)))
      ,@body))
 
-(defmethod stream-read-char ((stream cold-stream))
+#+(or)(defmethod stream-read-char ((stream cold-stream))
   (or (cold-read-char stream) :eof))
 
-(defmethod stream-listen ((stream cold-stream))
+#+(or)(defmethod stream-listen ((stream cold-stream))
   (cold-listen stream))
 
-(defmethod stream-unread-char ((stream cold-stream) character)
+#+(or)(defmethod stream-unread-char ((stream cold-stream) character)
   (cold-unread-char character stream))
 
-(defmethod stream-clear-input ((stream cold-stream))
+#+(or)(defmethod stream-clear-input ((stream cold-stream))
   (cold-clear-input stream))
 
-(defun cold-stream-buffer-flush (buffer)
+#+(or)(defun cold-stream-buffer-flush (buffer)
   (let ((data (cold-stream-buffer-data buffer)))
     (setf (fill-pointer data) 0)))
 
-(defmethod stream-write-char ((stream cold-stream) character)
+#+(or)(defmethod stream-write-char ((stream cold-stream) character)
   (cond (*cold-stream-is-line-buffered*
          (with-cold-stream-buffer (buffer)
            (vector-push-extend character (cold-stream-buffer-data buffer))
@@ -99,38 +98,35 @@
         (t
          (cold-write-char character stream))))
 
-(defmethod stream-start-line-p ((stream cold-stream))
+#+(or)(defmethod stream-start-line-p ((stream cold-stream))
   (cond (*cold-stream-is-line-buffered*
          (with-cold-stream-buffer (buffer)
            (zerop (cold-stream-buffer-column buffer))))
         (t
          (cold-start-line-p stream))))
 
-(defmethod stream-line-column ((stream cold-stream))
+#+(or)(defmethod stream-line-column ((stream cold-stream))
   (cond (*cold-stream-is-line-buffered*
          (with-cold-stream-buffer (buffer)
            (cold-stream-buffer-column buffer)))
         (t
          (cold-line-column stream))))
 
-(defmethod stream-finish-output ((stream cold-stream))
+#+(or)(defmethod stream-finish-output ((stream cold-stream))
   (when *cold-stream-is-line-buffered*
     (with-cold-stream-buffer (buffer)
       (cold-stream-buffer-flush buffer))))
 
-(defmethod stream-force-output ((stream cold-stream))
+#+(or)(defmethod stream-force-output ((stream cold-stream))
   (finish-output stream))
 
-(defmethod stream-clear-output ((stream cold-stream))
+#+(or)(defmethod stream-clear-output ((stream cold-stream))
   (when *cold-stream-is-line-buffered*
     (with-cold-stream-buffer (buffer)
       (setf (fill-pointer buffer) 0))))
 
-(defmethod stream-line-length ((stream cold-stream))
+#+(or)(defmethod stream-line-length ((stream cold-stream))
   (cold-line-length stream))
-
-(defun streamp (object)
-  (typep object 'stream))
 
 (defgeneric stream-with-edit (stream fn))
 (defgeneric stream-cursor-pos (stream))
@@ -141,20 +137,20 @@
 
 (defmacro with-open-stream ((var stream) &body body)
   (multiple-value-bind (body-forms declares)
-      (parse-declares body)
+      (alexandria:parse-body body)
     `(let ((,var ,stream))
-       (declare ,@declares)
+       ,@declares
        (unwind-protect
             (progn ,@body-forms)
          (close ,var)))))
 
 (defmacro with-open-file ((var filespec &rest options) &body body)
   (multiple-value-bind (body-forms declares)
-      (parse-declares body)
+      (alexandria:parse-body body)
     (let ((abortp (gensym "ABORTP")))
       `(let ((,var (open ,filespec ,@options))
              (,abortp t))
-         (declare ,@declares)
+         ,@declares
          (unwind-protect
               (multiple-value-prog1
                   (progn ,@body-forms)
@@ -295,33 +291,22 @@
 (defun peek-char (&optional peek-type stream (eof-error-p t) eof-value recursive-p)
   (check-type peek-type (or (eql t) (eql nil) character))
   (let ((s (frob-input-stream stream)))
-    (cond ((eql peek-type nil)
-           (let ((ch (stream-peek-char s)))
-             (cond ((eql ch :eof)
-                    (if eof-error-p
-                        (error 'end-of-file :stream s)
-                        eof-value))
-                   (t ch))))
-          ((eql peek-type t)
-           (loop
-              for ch = (read-char s eof-error-p nil recursive-p)
-              until (or (not ch)
-                        (not (char= ch #\Space)))
-              finally (return (cond (ch
-                                     (unread-char ch s)
-                                     ch)
-                                    (t
-                                     eof-value)))))
-          ((characterp peek-type)
-           (loop
-              for ch = (read-char s eof-error-p nil recursive-p)
+    (if (characterp peek-type)
+        (loop for ch = (read-char s eof-error-p nil recursive-p)
               until (or (not ch)
                         (char= ch peek-type))
               finally (return (cond (ch
                                      (unread-char ch s)
                                      ch)
                                     (t
-                                     eof-value))))))))
+                                     eof-value))))
+        (let ((ch (if peek-type
+                      (stream-peek-char-skip-whitespace s)
+                      (stream-peek-char s))))
+          (cond ((not (eql ch :eof)) ch)
+                (eof-error-p
+                 (error 'end-of-file :stream s))
+                (t eof-value))))))
 
 (defun clear-input (&optional stream)
   (stream-clear-input (frob-input-stream stream))
@@ -472,44 +457,37 @@ CASE may be one of:
             (slot-value stream 'edit-handler) old-handler))))
 
 (defclass binary-output-stream (fundamental-binary-output-stream)
-  ((element-type :initarg :element-type :reader binary-output-stream-element-type)
-   (vector :initarg :vector :accessor binary-output-stream-vector))
-  (:default-initargs :vector nil))
+  ((element-type :initarg :element-type
+                 :reader binary-output-stream-element-type)
+   (buffer :initarg :buffer
+           :initform nil
+           :accessor binary-output-stream-buffer))
+  (:default-initargs :element-type '(unsigned-byte 8)))
 
-(defun make-binary-output-stream (&key (element-type '(unsigned-byte 8)) (vector nil vectorp))
-  (when vectorp
-    (when (not (and (vectorp vector)
-                    (array-has-fill-pointer-p vectorp)))
-      (error "~S must be a vector with a fill-pointer" vectorp)))
+(defmethod initialize-instance :after
+    ((instance binary-output-stream) &rest initargs &key &allow-other-keys)
+ (declare (ignore initargs))
+ (unless (binary-output-stream-buffer instance)
+   (setf (binary-output-stream-buffer instance)
+        (make-array 8 :element-type (binary-output-stream-element-type instance)
+                    :adjustable t :fill-pointer 0))))
+
+(defun make-binary-output-stream (&key (element-type '(unsigned-byte 8)) (buffer nil bufferp))
+  (when bufferp
+    (when (not (and (vectorp buffer)
+                    (array-has-fill-pointer-p buffer)))
+      (error "~S must be a vector with a fill-pointer" buffer)))
   (when (not (subtypep element-type 'integer))
     (error "Element-type ~S must be a subtype of INTEGER" element-type))
-  (make-instance 'binary-output-stream :element-type element-type :vector vector))
-
-(defun get-output-stream-vector (binary-output-stream)
-  (check-type binary-output-stream binary-output-stream)
-  (prog1 (or (binary-output-stream-vector binary-output-stream)
-             (make-array 0 :element-type (vector-output-stream-element-type binary-output-stream)))
-    (setf (binary-output-stream-vector binary-output-stream) nil)))
+  (make-instance 'binary-output-stream :element-type element-type :buffer buffer))
 
 (defmethod stream-write-byte ((stream binary-output-stream) integer)
-  (unless (binary-output-stream-vector stream)
-    (setf (binary-output-stream-vector stream)
-          (make-array 8
-                      :element-type (binary-output-stream-element-type stream)
-                      :adjustable t
-                      :fill-pointer 0)))
-  (vector-push-extend integer (binary-output-stream-vector stream)))
+  (vector-push-extend integer (binary-output-stream-buffer stream)))
 
 (defmethod stream-write-sequence ((stream binary-output-stream) seq &optional (start 0) end)
   (setf end (or end (length seq)))
   (let ((n-bytes (- end start)))
-    (unless (binary-output-stream-vector stream)
-      (setf (binary-output-stream-vector stream)
-            (make-array (max n-bytes 8)
-                        :element-type (binary-output-stream-element-type stream)
-                        :adjustable t
-                        :fill-pointer 0)))
-    (let* ((output (binary-output-stream-vector stream))
+    (let* ((output (binary-output-stream-buffer stream))
            (current-length (length output))
            (new-length (+ (length output) n-bytes)))
       (when (< (array-dimension output 0) new-length)
@@ -567,58 +545,4 @@ CASE may be one of:
 (defun fresh-line (&optional stream)
   (stream-fresh-line (frob-output-stream stream)))
 
-;;; Location tracking stream. See reader.lisp for the other half.
 
-(defgeneric location-tracking-stream-line (stream)
-  (:documentation "Return STREAM's current line, or NIL.
-Lines are counted from 1.")
-  (:method (stream) nil))
-(defgeneric location-tracking-stream-character (stream)
-  (:documentation "Return STREAM's current character index, or NIL.
-Characters are counted from 0.")
-  (:method (stream) nil))
-
-(defgeneric location-tracking-stream-location (stream)
-  (:documentation "Return a SOURCE-LOCATION indicating the current location in the stream. Returns NIL if location tracking is unavailable.
-This should only fill in the START- slots and ignore the END- slots.")
-  (:method (stream) nil))
-
-(defclass location-tracking-stream (fundamental-character-input-stream)
-  ((%stream :initarg :stream :reader location-tracking-stream-stream)
-   (%namestring :initarg :namestring :reader location-tracking-stream-namestring)
-   (%line :initarg :line :accessor location-tracking-stream-line)
-   (%character :initarg :character :accessor location-tracking-stream-character)
-   (%unread-character :accessor location-tracking-stream-unread-character))
-  (:default-initargs :character 0 :line 1))
-
-(defmethod location-tracking-stream-location ((stream location-tracking-stream))
-  (make-source-location
-   :file (location-tracking-stream-namestring stream)
-   :top-level-form-number *top-level-form-number*
-   :position (let ((inner (location-tracking-stream-stream stream)))
-               (if (typep inner 'file-stream)
-                   (file-position inner)
-                   nil))
-   :line (location-tracking-stream-line stream)
-   :character (location-tracking-stream-character stream)))
-
-(defmethod stream-read-char ((stream location-tracking-stream))
-  (let ((ch (read-char (location-tracking-stream-stream stream) nil :eof)))
-    (cond ((eql ch :eof))
-          ((eql ch #\Newline)
-           (incf (location-tracking-stream-line stream))
-           (setf (location-tracking-stream-unread-character stream)
-                 (location-tracking-stream-character stream))
-           (setf (location-tracking-stream-character stream) 0))
-          (t
-           (setf (location-tracking-stream-unread-character stream)
-                 (location-tracking-stream-character stream))
-           (incf (location-tracking-stream-character stream))))
-    ch))
-
-(defmethod stream-unread-char ((stream location-tracking-stream) character)
-  (when (eql character #\Newline)
-    (decf (location-tracking-stream-line stream)))
-  (setf (location-tracking-stream-character stream)
-        (location-tracking-stream-unread-character stream))
-  (unread-char character (location-tracking-stream-stream stream)))

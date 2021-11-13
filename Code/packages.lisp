@@ -29,6 +29,10 @@
    #:fundamental-binary-output-stream
    #:fundamental-character-input-stream
    #:fundamental-character-output-stream
+   ;; Utility Streams
+   #:binary-output-stream
+   #:binary-output-stream-buffer
+   #:binary-output-stream-element-type
    ;; CL Stream functions
    #:input-stream-p
    #:output-stream-p
@@ -126,6 +130,7 @@
    ;; Extensions.
    #:unread-char-mixin
    #:stream-display
+   #:stream-peek-char-skip-whitespace
    #:stream-open-p
    #:external-format-string-length)
   (:export
