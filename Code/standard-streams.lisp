@@ -119,9 +119,6 @@
 (defmethod stream-write-string ((stream synonym-stream) string &optional (start 0) end)
   (write-string string (follow-synonym-stream stream) :start start :end end))
 
-(defmethod stream-display ((stream synonym-stream) object)
-  (stream-display (follow-synonym-stream stream) object))
-
 ;;; Broadcast stream.
 
 (defclass broadcast-stream (fundamental-output-stream)
