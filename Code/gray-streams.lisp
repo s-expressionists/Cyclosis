@@ -20,21 +20,13 @@
   ()
   (:documentation "A superclass of all Gray output streams."))
 
-(defclass fundamental-binary-stream (fundamental-stream)
-  ()
-  (:documentation "A superclass of all Gray streams whose element-type is a subtype of unsigned-byte or signed-byte."))
-
 (defclass fundamental-character-stream (fundamental-stream)
   ()
   (:documentation "A superclass of all Gray streams whose element-type is a subtype of character."))
 
-(defclass fundamental-binary-input-stream (fundamental-input-stream fundamental-binary-stream)
+(defclass fundamental-binary-stream (fundamental-stream)
   ()
-  (:documentation "A superclass of all Gray input streams whose element-type is a subtype of unsigned-byte or signed-byte."))
-
-(defclass fundamental-binary-output-stream (fundamental-output-stream fundamental-binary-stream)
-  ()
-  (:documentation "A superclass of all Gray output streams whose element-type is a subtype of unsigned-byte or signed-byte."))
+  (:documentation "A superclass of all Gray streams whose element-type is a subtype of unsigned-byte or signed-byte."))
 
 (defclass fundamental-character-input-stream (fundamental-input-stream fundamental-character-stream)
   ()
@@ -44,47 +36,100 @@
   ()
   (:documentation "A superclass of all Gray output streams whose element-type is a subtype of character."))
 
-;;; Generic functions for Gray Streams.
+(defclass fundamental-binary-input-stream (fundamental-input-stream fundamental-binary-stream)
+  ()
+  (:documentation "A superclass of all Gray input streams whose element-type is a subtype of unsigned-byte or signed-byte."))
 
-(defgeneric stream-element-type (stream))
-(defgeneric stream-external-format (stream))
-(defgeneric close (stream &key abort))
-(defgeneric open-stream-p (stream))
-(defgeneric input-stream-p (stream))
-(defgeneric output-stream-p (stream))
-(defgeneric interactive-stream-p (stream))
-(defgeneric stream-file-position (stream &optional position-spec))
-(defgeneric stream-file-length (stream))
-(defgeneric stream-file-string-length (stream string))
-(defgeneric stream-clear-input (stream))
-(defgeneric stream-read-sequence (stream seq &optional start end))
-(defgeneric stream-clear-output (stream))
-(defgeneric stream-finish-output (stream))
-(defgeneric stream-force-output (stream))
-(defgeneric stream-write-sequence (stream seq &optional start end))
-(defgeneric stream-read-byte (stream))
-(defgeneric stream-read-byte-no-hang (stream))
-(defgeneric stream-write-byte (stream integer))
-(defgeneric stream-listen-byte (stream))
-(defgeneric stream-peek-char (stream))
-(defgeneric stream-read-char-no-hang (stream))
+(defclass fundamental-binary-output-stream (fundamental-output-stream fundamental-binary-stream)
+  ()
+  (:documentation "A superclass of all Gray output streams whose element-type is a subtype of unsigned-byte or signed-byte."))
+
+;;; Character input
+
 (defgeneric stream-read-char (stream))
-(defgeneric stream-read-line (stream))
-(defgeneric stream-listen (stream))
+
 (defgeneric stream-unread-char (stream character))
-(defgeneric stream-advance-to-column (stream column))
-(defgeneric stream-fresh-line (stream))
-(defgeneric stream-line-column (stream))
-(defgeneric stream-line-length (stream))
-(defgeneric stream-start-line-p (stream))
-(defgeneric stream-terpri (stream))
+
+(defgeneric stream-read-char-no-hang (stream))
+
+(defgeneric stream-peek-char (stream))
+
+(defgeneric stream-listen (stream))
+
+(defgeneric stream-read-line (stream))
+
+(defgeneric stream-clear-input (stream))
+
+;;; Character output
+
 (defgeneric stream-write-char (stream character))
+
+(defgeneric stream-line-column (stream))
+
+(defgeneric stream-start-line-p (stream))
+
 (defgeneric stream-write-string (stream string &optional start end))
+
+(defgeneric stream-terpri (stream))
+
+(defgeneric stream-fresh-line (stream))
+
+(defgeneric stream-finish-output (stream))
+
+(defgeneric stream-force-output (stream))
+
+(defgeneric stream-clear-output (stream))
+
+(defgeneric stream-advance-to-column (stream column))
+
+;;; Other functions
+
+(defgeneric close (stream &key abort))
+
+(defgeneric open-stream-p (stream))
+
 (defgeneric streamp (stream))
 
-;;; Generic functions for Gray Stream extensions
+(defgeneric input-stream-p (stream))
 
-(defgeneric stream-display (stream object))
+(defgeneric output-stream-p (stream))
+
+(defgeneric stream-element-type (stream))
+
+;;; Binary streams
+
+(defgeneric stream-read-byte (stream))
+
+(defgeneric stream-write-byte (stream integer))
+
+;;; Extensions to Gray Streams
+
+;;; Common Lisp functions made generic
+
+(defgeneric stream-external-format (stream))
+
+(defgeneric interactive-stream-p (stream))
+
+;;; Generic support for other CL stream functions
+
+(defgeneric stream-file-position (stream &optional position-spec))
+
+(defgeneric stream-file-length (stream))
+
+(defgeneric stream-file-string-length (stream string))
+
+(defgeneric stream-read-sequence (stream seq &optional start end))
+
+(defgeneric stream-write-sequence (stream seq &optional start end))
+
+;;; Generalization for byte streams and other extensions
+
+(defgeneric stream-read-byte-no-hang (stream))
+
+(defgeneric stream-listen-byte (stream))
+
+(defgeneric stream-line-length (stream))
+
 (defgeneric stream-peek-char-skip-whitespace (stream))
 
 ;;; Default Gray methods
@@ -96,9 +141,6 @@
 (defmethod streamp ((stream stream))
   (declare (ignore stream))
   t)
-
-(defmethod stream-display (stream (object fundamental-character-output-stream))
-  (format stream "~S" object))
 
 (defmethod stream-line-column ((stream fundamental-character-output-stream))
   nil)
@@ -151,25 +193,25 @@
   (error 'type-error :expected-type 'stream :datum stream))
 
 (defmethod input-stream-p ((stream fundamental-stream))
-  'nil)
+  nil)
 
 (defmethod input-stream-p ((stream fundamental-input-stream))
-  't)
+  t)
 
 (defmethod output-stream-p ((stream t))
   (error 'type-error :expected-type 'stream :datum stream))
 
 (defmethod output-stream-p ((stream fundamental-stream))
-  'nil)
+  nil)
 
 (defmethod output-stream-p ((stream fundamental-output-stream))
-  't)
+  t)
 
 (defmethod interactive-stream-p ((stream t))
   (error 'type-error :expected-type 'stream :datum stream))
 
 (defmethod interactive-stream-p ((stream fundamental-stream))
-  'nil)
+  nil)
 
 (defmethod stream-element-type ((stream fundamental-character-stream))
   'character)
@@ -262,7 +304,8 @@
   (write-char #\Newline stream))
 
 (defmethod stream-write-string ((stream fundamental-character-output-stream) string &optional (start 0) end)
-  (write-sequence string stream :start start :end end)
+  (loop for index from start below (or end (length string))
+        do (stream-write-char stream (char string index)))
   string)
 
 (defmethod stream-file-position ((stream fundamental-stream) &optional position-spec)

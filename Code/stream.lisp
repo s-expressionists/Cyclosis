@@ -1,133 +1,5 @@
 (in-package #:cyclosis)
 
-;;; I/O customization variables.
-
-#+(or)(defclass cold-stream (fundamental-character-input-stream
-                       fundamental-character-output-stream)
-  ())
-
-#+(or)(defparameter *cold-stream* (make-instance 'cold-stream))
-
-#+(or)(defparameter *terminal-io* *cold-stream*
-  "A bi-directional stream connected to the user's console.")
-#+(or)(defparameter *debug-io* (make-synonym-stream '*terminal-io*)
-  "Interactive debugging stream.")
-#+(or)(defparameter *error-output* (make-synonym-stream '*terminal-io*)
-  "Warning and non-interactive error stream.")
-#+(or)(defparameter *query-io* (make-synonym-stream '*terminal-io*)
-  "User interaction stream.")
-#+(or)(defparameter *standard-input* (make-synonym-stream '*terminal-io*)
-  "Default input stream.")
-#+(or)(defparameter *standard-output* (make-synonym-stream '*terminal-io*)
-  "Default output stream.")
-#+(or)(defparameter *trace-output* (make-synonym-stream '*terminal-io*))
-
-;;; Cold stream methods.
-
-#+(or)(defparameter *cold-stream-is-line-buffered* t)
-;; This uses a list of buffers instead of a weak hash table so
-;; that GET-COLD-STREAM-BUFFER can flush any dead entries.
-#+(or)(defparameter *cold-stream-buffers* '())
-
-;; (defparameter *cold-stream-lock* (mezzano.supervisor:make-mutex '*cold-stream-buffers*))
-
-#+(or)(defstruct cold-stream-buffer
-  thread
-  data
-  column)
-
-#+(or)(defun get-cold-stream-buffer ()
-  ;; (mezzano.supervisor:with-mutex (*cold-stream-lock*))
-  (do ((self t ;; X(mezzano.supervisor:current-thread)
-             )
-       (entry nil)
-       (i *cold-stream-buffers*)
-       (prev nil))
-      ((endp i)
-       (when (not entry)
-         (setf entry (make-cold-stream-buffer
-                      :thread (make-weak-pointer self)
-                      :data (make-array 100
-                                        :element-type 'character
-                                        :fill-pointer 0
-                                        :adjustable t)
-                      :column 0))
-         (push entry *cold-stream-buffers*))
-       entry)
-    (let ((thread (weak-pointer-value (cold-stream-buffer-thread (first i)))))
-      (when (eql thread self)
-        (setf entry (first i)))
-      (cond (thread
-             (setf prev i))
-            (t
-             ;; Entry is dead, flush & remove it.
-             (if prev
-                 (setf (rest prev) (rest i))
-                 (setf *cold-stream-buffers* (rest i)))))
-      (setf i (rest i)))))
-
-#+(or)(defmacro with-cold-stream-buffer ((buffer) &body body)
-  `(let ((buffer (get-cold-stream-buffer)))
-     ,@body))
-
-#+(or)(defmethod stream-read-char ((stream cold-stream))
-  (or (cold-read-char stream) :eof))
-
-#+(or)(defmethod stream-listen ((stream cold-stream))
-  (cold-listen stream))
-
-#+(or)(defmethod stream-unread-char ((stream cold-stream) character)
-  (cold-unread-char character stream))
-
-#+(or)(defmethod stream-clear-input ((stream cold-stream))
-  (cold-clear-input stream))
-
-#+(or)(defun cold-stream-buffer-flush (buffer)
-  (let ((data (cold-stream-buffer-data buffer)))
-    (setf (fill-pointer data) 0)))
-
-#+(or)(defmethod stream-write-char ((stream cold-stream) character)
-  (cond (*cold-stream-is-line-buffered*
-         (with-cold-stream-buffer (buffer)
-           (vector-push-extend character (cold-stream-buffer-data buffer))
-           (cond ((eql character #\Newline)
-                  (setf (cold-stream-buffer-column buffer) 0)
-                  (cold-stream-buffer-flush buffer))
-                 (t
-                  (incf (cold-stream-buffer-column buffer))))))
-        (t
-         (cold-write-char character stream))))
-
-#+(or)(defmethod stream-start-line-p ((stream cold-stream))
-  (cond (*cold-stream-is-line-buffered*
-         (with-cold-stream-buffer (buffer)
-           (zerop (cold-stream-buffer-column buffer))))
-        (t
-         (cold-start-line-p stream))))
-
-#+(or)(defmethod stream-line-column ((stream cold-stream))
-  (cond (*cold-stream-is-line-buffered*
-         (with-cold-stream-buffer (buffer)
-           (cold-stream-buffer-column buffer)))
-        (t
-         (cold-line-column stream))))
-
-#+(or)(defmethod stream-finish-output ((stream cold-stream))
-  (when *cold-stream-is-line-buffered*
-    (with-cold-stream-buffer (buffer)
-      (cold-stream-buffer-flush buffer))))
-
-#+(or)(defmethod stream-force-output ((stream cold-stream))
-  (finish-output stream))
-
-#+(or)(defmethod stream-clear-output ((stream cold-stream))
-  (when *cold-stream-is-line-buffered*
-    (with-cold-stream-buffer (buffer)
-      (setf (fill-pointer buffer) 0))))
-
-#+(or)(defmethod stream-line-length ((stream cold-stream))
-  (cold-line-length stream))
-
 (defgeneric stream-with-edit (stream fn))
 (defgeneric stream-cursor-pos (stream))
 (defgeneric stream-character-width (stream character))
@@ -158,21 +30,29 @@
            (when ,var
              (close ,var :abort ,abortp)))))))
 
-(defun frob-stream (stream default)
-  (cond ((eql stream 'nil)
-         default)
-        ((eql stream 't)
+(defun frob-input-stream (stream)
+  (cond ((null stream)
+         *standard-input*)
+        ((eql stream t)
          *terminal-io*)
+        ((not (input-stream-p stream))
+         (error 'type-error :expected-type 'fundamental-input-stream :datum stream))
+        ((not (open-stream-p stream))
+         (error 'stream-error :stream stream))
         (t
-         ;; TODO: check that the stream is open.
-         (check-type stream stream)
          stream)))
 
-(defun frob-input-stream (stream)
-  (frob-stream stream *standard-input*))
-
 (defun frob-output-stream (stream)
-  (frob-stream stream *standard-output*))
+  (cond ((null stream)
+         *standard-output*)
+        ((eql stream t)
+         *terminal-io*)
+        ((not (output-stream-p stream))
+         (error 'type-error :expected-type 'fundamental-output-stream :datum stream))
+        ((not (open-stream-p stream))
+         (error 'stream-error :stream stream))
+        (t
+         stream)))
 
 (defun listen-byte (&optional input-stream)
   ;; Note: Unlike STREAM-LISTEN, STREAM-LISTEN-BYTE may return :EOF
@@ -536,6 +416,13 @@ CASE may be one of:
 (defun write-string (string &optional stream &key (start 0) end)
   (check-type string string)
   (stream-write-string (frob-output-stream stream) string start end)
+  string)
+
+(defun write-line (string &optional stream &key (start 0) end)
+  (check-type string string)
+  (let ((stream (frob-output-stream stream)))
+    (stream-write-string stream string start end)
+    (stream-terpri stream))
   string)
 
 (defun terpri (&optional stream)
