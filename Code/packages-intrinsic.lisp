@@ -3,7 +3,6 @@
 (defpackage #:cyclosis
   (:use #:common-lisp)
   (:export
-   ;;; Interface symbols
    #:fundamental-stream
    #:fundamental-input-stream
    #:fundamental-output-stream
