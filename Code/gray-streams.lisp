@@ -148,10 +148,12 @@
 (defmethod stream-line-length ((stream fundamental-character-output-stream))
   nil)
 
-(defmethod stream-read-sequence ((stream fundamental-input-stream) sequence &optional (start 0) end)
+(defmethod stream-read-sequence
+    ((stream fundamental-input-stream) sequence &optional (start 0) end)
   (setf end (or end (length sequence)))
   (let ((n (- end start)))
-    ;; For bivalent streams, perform character reads unless reading into an integer vector.
+    ;; For bivalent streams, perform character reads unless reading
+    ;; into an integer vector.
     (if (and (subtypep (stream-element-type stream) 'character)
              (not (and (vectorp sequence)
                        (subtypep (array-element-type sequence) 'integer))))
@@ -166,7 +168,8 @@
                 (setf (elt sequence (+ start i)) elt)
                 (return (+ start i))))))))
 
-(defmethod stream-write-sequence ((stream fundamental-output-stream) sequence &optional (start 0) end)
+(defmethod stream-write-sequence
+    ((stream fundamental-output-stream) sequence &optional (start 0) end)
   (setf end (or end (length sequence)))
   (let ((n (- end start)))
     (if (and (subtypep (stream-element-type stream) 'character)
@@ -226,7 +229,8 @@
 ;; (defmethod external-format-string-length ((external-format (eql :utf-8)) string)
 ;;   (length (sys.int::encode-utf-8-string string :eol-style :lf)))
 
-(defmethod stream-file-string-length ((stream fundamental-character-output-stream) string)
+(defmethod stream-file-string-length
+    ((stream fundamental-character-output-stream) string)
   (external-format-string-length (stream-external-format stream) string))
 
 (defmethod stream-clear-input ((stream fundamental-input-stream))
@@ -256,7 +260,8 @@
           (t (unread-char ch stream)
              ch))))
 
-(defmethod stream-peek-char-skip-whitespace ((stream fundamental-character-input-stream))
+(defmethod stream-peek-char-skip-whitespace
+    ((stream fundamental-character-input-stream))
   (loop for ch = (stream-peek-char stream)
         while (equal ch #\Space)
         do (stream-read-char stream)
@@ -282,7 +287,8 @@
           (t (unread-char ch stream)
              t))))
 
-(defmethod stream-advance-to-column ((stream fundamental-character-output-stream) column)
+(defmethod stream-advance-to-column
+    ((stream fundamental-character-output-stream) column)
   (let ((current (line-column stream)))
     (when current
       (dotimes (i (- column current))
@@ -303,7 +309,8 @@
 (defmethod stream-terpri ((stream fundamental-character-output-stream))
   (write-char #\Newline stream))
 
-(defmethod stream-write-string ((stream fundamental-character-output-stream) string &optional (start 0) end)
+(defmethod stream-write-string
+    ((stream fundamental-character-output-stream) string &optional (start 0) end)
   (loop for index from start below (or end (length string))
         do (stream-write-char stream (char string index)))
   string)

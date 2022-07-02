@@ -42,7 +42,8 @@
 (defmethod interactive-stream-p ((stream synonym-stream))
   (interactive-stream-p (follow-synonym-stream stream)))
 
-(defmethod stream-file-position ((stream synonym-stream) &optional (position-spec nil position-spec-p))
+(defmethod stream-file-position
+    ((stream synonym-stream) &optional (position-spec nil position-spec-p))
   (if position-spec-p
       (file-position (follow-synonym-stream stream) position-spec)
       (file-position (follow-synonym-stream stream))))
@@ -56,7 +57,8 @@
 (defmethod stream-clear-input ((stream synonym-stream))
   (clear-input (follow-synonym-stream stream)))
 
-(defmethod stream-read-sequence ((stream synonym-stream) seq &optional (start 0) end)
+(defmethod stream-read-sequence
+    ((stream synonym-stream) seq &optional (start 0) end)
   (read-sequence seq (follow-synonym-stream stream) :start start :end end))
 
 (defmethod stream-clear-output ((stream synonym-stream))
@@ -68,7 +70,8 @@
 (defmethod stream-force-output ((stream synonym-stream))
   (force-output (follow-synonym-stream stream)))
 
-(defmethod stream-write-sequence ((stream synonym-stream) seq &optional (start 0) end)
+(defmethod stream-write-sequence
+    ((stream synonym-stream) seq &optional (start 0) end)
   (write-sequence seq (follow-synonym-stream stream) :start start :end end))
 
 (defmethod stream-read-byte ((stream synonym-stream))
@@ -116,7 +119,8 @@
 (defmethod stream-write-char ((stream synonym-stream) character)
   (write-char character (follow-synonym-stream stream)))
 
-(defmethod stream-write-string ((stream synonym-stream) string &optional (start 0) end)
+(defmethod stream-write-string
+    ((stream synonym-stream) string &optional (start 0) end)
   (write-string string (follow-synonym-stream stream) :start start :end end))
 
 ;;; Broadcast stream.
@@ -148,7 +152,8 @@
   (broadcast-stream-op (substream stream byte)
     (write-byte byte substream)))
 
-(defmethod stream-write-sequence ((stream broadcast-stream) seq &optional (start 0) end)
+(defmethod stream-write-sequence
+    ((stream broadcast-stream) seq &optional (start 0) end)
   (broadcast-stream-op (substream stream start)
     (write-sequence seq substream :start start :end end)))
 
@@ -168,7 +173,8 @@
   (broadcast-stream-op (substream stream 1)
     (file-string-length substream)))
 
-(defmethod stream-file-position ((stream broadcast-stream) &optional (position-spec nil position-spec-p))
+(defmethod stream-file-position
+    ((stream broadcast-stream) &optional (position-spec nil position-spec-p))
   (if position-spec-p
       (broadcast-stream-op (substream stream nil)
         (file-position substream position-spec))
@@ -207,7 +213,8 @@
   (broadcast-stream-op (substream stream nil)
     (terpri substream)))
 
-(defmethod stream-write-string ((stream broadcast-stream) string &optional (start 0) end)
+(defmethod stream-write-string
+    ((stream broadcast-stream) string &optional (start 0) end)
   (broadcast-stream-op (substream stream string)
     (write-string string substream :start start :end end)))
 
@@ -322,7 +329,8 @@
 (defmethod stream-terpri ((stream echo-stream))
   (terpri (echo-stream-output-stream stream)))
 
-(defmethod stream-write-string ((stream echo-stream) string &optional (start 0) end)
+(defmethod stream-write-string
+    ((stream echo-stream) string &optional (start 0) end)
   (write-string string (echo-stream-output-stream stream) :start start :end end))
 
 ;;; Two-way stream.
@@ -415,7 +423,8 @@
 (defmethod stream-terpri ((stream two-way-stream))
   (terpri (two-way-stream-output-stream stream)))
 
-(defmethod stream-write-string ((stream two-way-stream) string &optional (start 0) end)
+(defmethod stream-write-string
+    ((stream two-way-stream) string &optional (start 0) end)
   (write-string string (two-way-stream-output-stream stream) :start start :end end))
 
 ;;; Concatenated stream.
@@ -437,7 +446,8 @@
       (stream-element-type (first (concatenated-stream-streams stream)))
       nil))
 
-(defmethod stream-read-sequence ((stream concatenated-stream) seq &optional (start 0) end)
+(defmethod stream-read-sequence
+    ((stream concatenated-stream) seq &optional (start 0) end)
   (setf end (or end (length seq)))
   (loop
      (when (>= start end)
@@ -522,7 +532,8 @@
    (string :initarg :string :accessor string-output-stream-string))
   (:default-initargs :string nil))
 
-(defun make-string-output-stream (&key (element-type 'character) (string nil stringp))
+(defun make-string-output-stream
+    (&key (element-type 'character) (string nil stringp))
   (when stringp
     (when (not (and (stringp string)
                     (array-has-fill-pointer-p string)))
@@ -539,13 +550,15 @@
 
 (defmethod stream-write-char ((stream string-output-stream) character)
   (unless (string-output-stream-string stream)
-    (setf (string-output-stream-string stream) (make-array 8
-                                                           :element-type (string-output-stream-element-type stream)
-                                                           :adjustable t
-                                                           :fill-pointer 0)))
+    (setf (string-output-stream-string stream)
+          (make-array 8
+                      :element-type (string-output-stream-element-type stream)
+                      :adjustable t
+                      :fill-pointer 0)))
   (vector-push-extend character (string-output-stream-string stream)))
 
-(defmethod stream-write-sequence ((stream string-output-stream) seq &optional (start 0) end)
+(defmethod stream-write-sequence
+    ((stream string-output-stream) seq &optional (start 0) end)
   (setf end (or end (length seq)))
   (when (not (typep seq 'string))
     ;; Make sure the sequence only contains characters.
@@ -560,10 +573,11 @@
                  :format-arguments (list seq))))
   (let ((n-chars (- end start)))
     (unless (string-output-stream-string stream)
-      (setf (string-output-stream-string stream) (make-array (max n-chars 8)
-                                                             :element-type (string-output-stream-element-type stream)
-                                                             :adjustable t
-                                                             :fill-pointer 0)))
+      (setf (string-output-stream-string stream)
+            (make-array (max n-chars 8)
+                        :element-type (string-output-stream-element-type stream)
+                        :adjustable t
+                        :fill-pointer 0)))
     (let* ((output (string-output-stream-string stream))
            (current-length (length output))
            (new-length (+ (length output) n-chars)))
@@ -577,7 +591,8 @@
       seq)))
 
 (defmethod stream-start-line-p ((stream string-output-stream))
-  ;; If the string is empty or last character is a newline, then it's at the start.
+  ;; If the string is empty or last character is a newline, then it's
+  ;; at the start.
   (let ((string (string-output-stream-string stream)))
     (or (zerop (length string))
         (eql (char string (1- (length string))) #\Newline))))
@@ -594,7 +609,8 @@
           (t
            0))))
 
-(defmacro with-output-to-string ((var &optional string-form &key (element-type ''character)) &body body)
+(defmacro with-output-to-string
+    ((var &optional string-form &key (element-type ''character)) &body body)
   (if string-form
       `(with-open-stream (,var (make-string-output-stream :string ,string-form :element-type ,element-type))
          ,@body)
@@ -625,7 +641,8 @@
         (incf (slot-value stream 'start)))
       :eof))
 
-(defmethod stream-read-sequence ((stream string-input-stream) seq &optional (start 0) end)
+(defmethod stream-read-sequence
+    ((stream string-input-stream) seq &optional (start 0) end)
   (let* ((available (- (slot-value stream 'end) (slot-value stream 'start)))
          (requested (- (or end (length seq)) start))
          (provided (min available requested)))
@@ -636,7 +653,8 @@
     (incf (slot-value stream 'start) provided)
     (+ start provided)))
 
-(defmacro with-input-from-string ((var string &key (start 0) end index) &body body)
+(defmacro with-input-from-string
+    ((var string &key (start 0) end index) &body body)
   (cond (index
          (multiple-value-bind (body-forms declares)
              (alexandria:parse-body body)
