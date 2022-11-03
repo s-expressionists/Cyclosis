@@ -107,4 +107,4 @@
    #:stream-peek-char-skip-whitespace
    #:stream-open-p
    #:external-format-string-length
-   . #=#))
+   . #1#))
