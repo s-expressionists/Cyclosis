@@ -1,6 +1,6 @@
 ;;;; Implementations of the standard stream types.
 
-(cl:in-package :cyclosis)
+(cl:in-package #:cyclosis)
 
 (defclass file-stream (stream) ())
 (defclass string-stream (stream) ())

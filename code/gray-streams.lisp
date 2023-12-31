@@ -1,6 +1,6 @@
 ;;;; Definitions of Gray streams classes and functions.
 
-(cl:in-package :cyclosis)
+(cl:in-package #:cyclosis)
 
 ;;; The standard stream class.
 

@@ -7,28 +7,8 @@
 (defgeneric stream-clear-between (stream start-x start-y end-x end-y))
 (defgeneric stream-move-to (stream x y))
 
-(defmacro with-open-stream ((var stream) &body body)
-  (multiple-value-bind (body-forms declares)
-      (alexandria:parse-body body)
-    `(let ((,var ,stream))
-       ,@declares
-       (unwind-protect
-            (progn ,@body-forms)
-         (close ,var)))))
-
-(defmacro with-open-file ((var filespec &rest options) &body body)
-  (multiple-value-bind (body-forms declares)
-      (alexandria:parse-body body)
-    (let ((abortp (gensym "ABORTP")))
-      `(let ((,var (open ,filespec ,@options))
-             (,abortp t))
-         ,@declares
-         (unwind-protect
-              (multiple-value-prog1
-                  (progn ,@body-forms)
-                (setf ,abortp nil))
-           (when ,var
-             (close ,var :abort ,abortp)))))))
+(defun ensure-symbol (name &optional (package *package*))
+  (intern (string name) package))
 
 (defun frob-input-stream (stream)
   (cond ((null stream)
@@ -53,6 +33,79 @@
          (error 'stream-error :stream stream))
         (t
          stream)))
+
+(defun expand-with-open-stream (var stream body)
+  (multiple-value-bind (body-forms declares)
+      (alexandria:parse-body body)
+    `(let ((,var ,stream))
+       ,@declares
+       (unwind-protect
+            (progn ,@body-forms)
+         (close ,var)))))
+
+(defun expand-with-open-file (open-sym var filespec options body)
+  (multiple-value-bind (body-forms declares)
+      (alexandria:parse-body body)
+    (let ((abortp (gensym "ABORTP")))
+      `(let ((,var (,open-sym ,filespec ,@options))
+             (,abortp t))
+         ,@declares
+         (unwind-protect
+              (multiple-value-prog1
+                  (progn ,@body-forms)
+                (setf ,abortp nil))
+           (when ,var
+             (close ,var :abort ,abortp)))))))
+
+(defmacro define-interface (&key intrinsic)
+  (let* ((intrinsic-pkg (if intrinsic (find-package '#:common-lisp) *package*))
+         (open-hooks-var (ensure-symbol '#:*open-hooks*))
+         (open-sym (ensure-symbol '#:open intrinsic-pkg)))
+    `(progn
+       (defvar ,open-hooks-var nil)
+
+       (defun ,open-sym
+           (filespec
+            &key (direction :input)
+                 (element-type 'character)
+                 (if-exists nil if-exists-p)
+                 (if-does-not-exist nil if-does-not-exist-p)
+                 (external-format :default))
+         (check-type direction (member :input :output :io :probe))
+         (check-type if-exists (member :error :new-version :rename :rename-and-delete
+                                       :overwrite :append :supersede nil))
+         (check-type if-does-not-exist (member :error :create nil))
+         (let ((path (translate-logical-pathname (merge-pathnames filespec))))
+           (when (wild-pathname-p path)
+             (error "Wild pathname specified."))
+           (unless if-exists-p
+             (setf if-exists (if (eql (pathname-version path) :newest)
+                                 :new-version
+                                 :error)))
+           (unless if-does-not-exist-p
+             (cond ((or (eql direction :input)
+                        (eql if-exists :overwrite)
+                        (eql if-exists :append))
+                    (setf if-does-not-exist :error))
+                   ((or (eql direction :output)
+                        (eql direction :io))
+                    (setf if-does-not-exist :create))
+                   ((eql direction :probe)
+                    (setf if-does-not-exist nil))))
+           (loop for hook in ,open-hooks-var
+                 for stream = (funcall hook path direction element-type
+                                       if-exists if-does-not-exist external-format)
+                 finally (error "Unable to find a suitable open hook.")
+                 when stream
+                   return stream)))
+
+       (defmacro ,(ensure-symbol '#:with-open-stream intrinsic-pkg)
+           ((var stream) &body body)
+         (expand-with-open-stream var stream body))
+
+       (defmacro ,(ensure-symbol '#:with-open-file intrinsic-pkg)
+           ((var filespec &rest options) &body body)
+         (expand-with-open-file ',open-sym var filespec options body)))))
 
 (defun listen-byte (&optional input-stream)
   ;; Note: Unlike STREAM-LISTEN, STREAM-LISTEN-BYTE may return :EOF
