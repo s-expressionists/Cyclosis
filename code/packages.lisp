@@ -4,25 +4,16 @@
   (:use #:common-lisp)
   (:shadow #:broadcast-stream
            #:broadcast-stream-streams
-           #:clear-input
-           #:clear-output
            #:close
            #:concatenated-stream
            #:concatenated-stream-streams
            #:echo-stream
            #:echo-stream-input-stream
            #:echo-stream-output-stream
-           #:file-length
-           #:file-position
            #:file-stream
-           #:file-string-length
-           #:finish-output
-           #:force-output
-           #:fresh-line
            #:get-output-stream-string
            #:input-stream-p
            #:interactive-stream-p
-           #:listen
            #:make-broadcast-stream
            #:make-concatenated-stream
            #:make-echo-stream
@@ -30,15 +21,8 @@
            #:make-string-output-stream
            #:make-synonym-stream
            #:make-two-way-stream
-           #:open
            #:open-stream-p
            #:output-stream-p
-           #:peek-char
-           #:read-byte
-           #:read-char
-           #:read-char-no-hang
-           #:read-line
-           #:read-sequence
            #:stream
            #:stream-element-type
            #:stream-external-format
@@ -46,78 +30,78 @@
            #:string-stream
            #:synonym-stream
            #:synonym-stream-symbol
-           #:terpri
            #:two-way-stream
            #:two-way-stream-input-stream
-           #:two-way-stream-output-stream
-           #:unread-char
-           #:with-input-from-string
-           #:with-output-to-string
-           #:write-byte
-           #:write-char
-           #:write-line
-           #:write-sequence
-           #:write-string
-           #:y-or-n-p
-           #:yes-or-no-p)
+           #:two-way-stream-output-stream)
   (:export #:broadcast-stream
            #:broadcast-stream-streams
-           #:clear-input
-           #:clear-output
            #:close
+           #:coerce-input-stream
+           #:coerce-output-stream
            #:concatenated-stream
            #:concatenated-stream-streams
+           #:define-interface
            #:echo-stream
            #:echo-stream-input-stream
            #:echo-stream-output-stream
-           #:file-length
-           #:file-position
+           #:expand-with-input-from-string
+           #:expand-with-open-file
+           #:expand-with-open-stream
+           #:expand-with-output-to-string
            #:file-stream
-           #:file-string-length
-           #:finish-output
-           #:force-output
-           #:fresh-line
+           #:fundamental-binary-input-stream
+           #:fundamental-binary-output-stream
+           #:fundamental-binary-stream
+           #:fundamental-character-input-stream
+           #:fundamental-character-output-stream
+           #:fundamental-character-stream
+           #:fundamental-input-stream
+           #:fundamental-output-stream
+           #:fundamental-stream
            #:get-output-stream-string
            #:input-stream-p
            #:interactive-stream-p
-           #:listen
-           #:expand-with-open-stream
-           #:expand-with-open-file
            #:make-broadcast-stream
            #:make-concatenated-stream
            #:make-echo-stream
+           #:make-file-stream
            #:make-string-input-stream
            #:make-string-output-stream
            #:make-synonym-stream
            #:make-two-way-stream
-           #:open
            #:open-stream-p
            #:output-stream-p
-           #:peek-char
-           #:read-byte
-           #:read-char
-           #:read-char-no-hang
-           #:read-line
-           #:read-sequence
            #:stream
+           #:stream-advance-to-column
+           #:stream-clear-input
+           #:stream-clear-output
            #:stream-element-type
            #:stream-external-format
+           #:stream-file-length
+           #:stream-file-position
+           #:stream-file-string-length
+           #:stream-finish-output
+           #:stream-force-output
+           #:stream-fresh-line
+           #:stream-line-column
+           #:stream-listen
+           #:stream-peek-char
+           #:stream-read-byte
+           #:stream-read-char
+           #:stream-read-char-no-hang
+           #:stream-read-line
+           #:stream-read-sequence
+           #:stream-start-line-p
+           #:stream-terpri
+           #:stream-unread-char
+           #:stream-write-byte
+           #:stream-write-char
+           #:stream-write-sequence
+           #:stream-write-string
            #:streamp
            #:string-stream
-           #:define-interface
            #:synonym-stream
            #:synonym-stream-symbol
-           #:terpri
            #:two-way-stream
            #:two-way-stream-input-stream
-           #:two-way-stream-output-stream
-           #:unread-char
-           #:with-input-from-string
-           #:with-output-to-string
-           #:write-byte
-           #:write-char
-           #:write-line
-           #:write-sequence
-           #:write-string
-           #:y-or-n-p
-           #:yes-or-no-p))
+           #:two-way-stream-output-stream))

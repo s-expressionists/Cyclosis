@@ -1,69 +1,67 @@
 (in-package #:cyclosis)
 
-(defgeneric stream-with-edit (stream fn))
-(defgeneric stream-cursor-pos (stream))
-(defgeneric stream-character-width (stream character))
-(defgeneric stream-compute-motion (stream string &optional start end initial-x initial-y))
-(defgeneric stream-clear-between (stream start-x start-y end-x end-y))
-(defgeneric stream-move-to (stream x y))
+#+(or)(defgeneric stream-with-edit (stream fn))
+#+(or)(defgeneric stream-cursor-pos (stream))
+#+(or)(defgeneric stream-character-width (stream character))
+#+(or)(defgeneric stream-compute-motion (stream string &optional start end initial-x initial-y))
+#+(or)(defgeneric stream-clear-between (stream start-x start-y end-x end-y))
+#+(or)(defgeneric stream-move-to (stream x y))
 
 (defun ensure-symbol (name &optional (package *package*))
   (intern (string name) package))
 
-(defun frob-input-stream (stream)
-  (cond ((null stream)
-         *standard-input*)
-        ((eql stream t)
-         *terminal-io*)
-        ((not (input-stream-p stream))
-         (error 'type-error :expected-type 'fundamental-input-stream :datum stream))
-        ((not (open-stream-p stream))
-         (error 'stream-error :stream stream))
-        (t
-         stream)))
+(defgeneric coerce-input-stream (client designator))
 
-(defun frob-output-stream (stream)
-  (cond ((null stream)
-         *standard-output*)
-        ((eql stream t)
-         *terminal-io*)
-        ((not (output-stream-p stream))
-         (error 'type-error :expected-type 'fundamental-output-stream :datum stream))
-        ((not (open-stream-p stream))
-         (error 'stream-error :stream stream))
-        (t
-         stream)))
+(defmethod cyclosis:coerce-input-stream (client designator)
+  (declare (ignore client))
+  (unless (input-stream-p designator)
+    (error 'type-error :datum designator :expected-type 'stream))
+  (unless (open-stream-p designator)
+    (error 'stream-error :stream designator))
+  designator)
 
-(defun expand-with-open-stream (var stream body)
-  (multiple-value-bind (body-forms declares)
-      (alexandria:parse-body body)
-    `(let ((,var ,stream))
-       ,@declares
-       (unwind-protect
-            (progn ,@body-forms)
-         (close ,var)))))
+(defgeneric coerce-output-stream (client designator))
 
-(defun expand-with-open-file (open-sym var filespec options body)
-  (multiple-value-bind (body-forms declares)
-      (alexandria:parse-body body)
-    (let ((abortp (gensym "ABORTP")))
-      `(let ((,var (,open-sym ,filespec ,@options))
-             (,abortp t))
-         ,@declares
-         (unwind-protect
-              (multiple-value-prog1
-                  (progn ,@body-forms)
-                (setf ,abortp nil))
-           (when ,var
-             (close ,var :abort ,abortp)))))))
+(defmethod cyclosis:coerce-output-stream (client designator)
+  (declare (ignore client))
+  (unless (output-stream-p designator)
+    (error 'type-error :datum designator :expected-type 'stream))
+  (unless (open-stream-p designator)
+    (error 'stream-error :stream designator))
+  designator)
 
-(defmacro define-interface (&key intrinsic)
+(defgeneric make-file-stream (client path direction if-exists if-does-not-exist element-type external-format))
+
+(defgeneric make-code (client element-type external-format))
+
+(defgeneric encode (code value octets))
+
+(defgeneric decode (code value octets))
+
+(defgeneric encoded-length (code value))
+
+(defgeneric decoded-length (code octets))
+
+(defgeneric write-octets (stream octets))
+
+(defgeneric read-octets (stream octets))
+
+(defgeneric stream-code (stream))
+
+(defgeneric (setf stream-code) (new-value stream))
+
+(defclass octet-stream-mixin ()
+  ((code :accessor stream-code
+         :initarg :code)
+   (element-type :accessor stream-element-type
+                 :initarg :element-type)
+   (external-format :accessor stream-external-format
+                    :initarg :external-format)))
+
+(defmacro define-interface (client-var &key intrinsic)
   (let* ((intrinsic-pkg (if intrinsic (find-package '#:common-lisp) *package*))
-         (open-hooks-var (ensure-symbol '#:*open-hooks*))
          (open-sym (ensure-symbol '#:open intrinsic-pkg)))
     `(progn
-       (defvar ,open-hooks-var nil)
-
        (defun ,open-sym
            (filespec
             &key (direction :input)
@@ -92,12 +90,9 @@
                     (setf if-does-not-exist :create))
                    ((eql direction :probe)
                     (setf if-does-not-exist nil))))
-           (loop for hook in ,open-hooks-var
-                 for stream = (funcall hook path direction element-type
-                                       if-exists if-does-not-exist external-format)
-                 finally (error "Unable to find a suitable open hook.")
-                 when stream
-                   return stream)))
+           (make-file-stream ,client-var path direction
+                             if-exists if-does-not-exist
+                             element-type external-format)))
 
        (defmacro ,(ensure-symbol '#:with-open-stream intrinsic-pkg)
            ((var stream) &body body)
@@ -105,29 +100,246 @@
 
        (defmacro ,(ensure-symbol '#:with-open-file intrinsic-pkg)
            ((var filespec &rest options) &body body)
-         (expand-with-open-file ',open-sym var filespec options body)))))
+         (expand-with-open-file ',open-sym var filespec options body))
 
-(defun listen-byte (&optional input-stream)
+       (defmacro ,(ensure-symbol '#:with-input-from-string intrinsic-pkg)
+           ((var string &key index start end) &body body)
+         (expand-with-input-from-string var string start end index body))
+
+       (defmacro ,(ensure-symbol '#:with-output-to-string intrinsic-pkg)
+           ((var &optional string-form &key element-type) &body body)
+         (expand-with-output-to-string var string-form element-type body))
+
+       (defun ,(ensure-symbol '#:read-byte intrinsic-pkg)
+           (stream &optional (eof-error-p t) eof-value)
+         (let ((b (stream-read-byte (coerce-input-stream ,client-var stream))))
+           (check-type b (or integer (eql :eof)))
+           (if (eql b :eof)
+               (if eof-error-p
+                   (error 'end-of-file :stream stream)
+                   eof-value)
+               b)))
+
+       (defun ,(ensure-symbol '#:write-byte intrinsic-pkg)
+           (byte stream)
+         (stream-write-byte (coerce-output-stream ,client-var stream) byte))
+
+       (defun ,(ensure-symbol '#:read-sequence intrinsic-pkg)
+           (sequence stream &key (start 0) end)
+         (stream-read-sequence (coerce-input-stream ,client-var stream) sequence
+                               start end))
+
+       (defun ,(ensure-symbol '#:write-sequence intrinsic-pkg)
+           (sequence stream &key (start 0) end)
+         (stream-write-sequence (coerce-output-stream ,client-var stream) sequence
+                                start end)
+         sequence)
+
+       (defun ,(ensure-symbol '#:file-position intrinsic-pkg)
+           (stream &optional (position-spec nil position-spec-p))
+         (check-type stream stream)
+         (cond (position-spec-p
+                (check-type position-spec (or (integer 0) (member :start :end)))
+                (stream-file-position stream position-spec))
+               (t
+                (stream-file-position stream))))
+
+       (defun ,(ensure-symbol '#:file-length intrinsic-pkg)
+           (stream)
+         (check-type stream stream)
+         (stream-file-length stream))
+
+       (defun ,(ensure-symbol '#:file-string-length intrinsic-pkg)
+           (stream object)
+         (check-type stream stream)
+         (check-type object (or string character))
+         (when (characterp object)
+           (setf object (string object)))
+         (stream-file-string-length stream object))
+
+       (defun ,(ensure-symbol '#:read-char intrinsic-pkg)
+           (&optional stream (eof-error-p t) eof-value recursive-p)
+         (declare (ignore recursive-p))
+         (let* ((s (coerce-input-stream ,client-var stream))
+                (c (stream-read-char s)))
+           (check-type c (or character (eql :eof)))
+           (cond ((eql c :eof)
+                  (when eof-error-p
+                    (error 'end-of-file :stream s))
+                  eof-value)
+                 (c))))
+
+       (defun ,(ensure-symbol '#:read-char-no-hang intrinsic-pkg)
+           (&optional stream (eof-error-p t) eof-value recursive-p)
+         (declare (ignore recursive-p))
+         (let* ((s (coerce-input-stream ,client-var stream))
+                (c (stream-read-char-no-hang s)))
+           (check-type c (or character (eql :eof) null))
+           (cond ((eql c :eof)
+                  (when eof-error-p
+                    (error 'end-of-file :stream s))
+                  eof-value)
+                 (c))))
+
+       (defun ,(ensure-symbol '#:read-line intrinsic-pkg)
+           (&optional input-stream (eof-error-p t) eof-value recursive-p)
+         (declare (ignore recursive-p))
+         (setf input-stream (coerce-input-stream ,client-var input-stream))
+         (multiple-value-bind (line missing-newline-p)
+             (stream-read-line input-stream)
+           (if (and (zerop (length line))
+                    missing-newline-p)
+               (if eof-error-p
+                   (error 'end-of-file :stream input-stream)
+                   (values eof-value t))
+               (values line missing-newline-p))))
+
+       (defun ,(ensure-symbol '#:unread-char intrinsic-pkg)
+           (character &optional stream)
+         (let ((s (coerce-input-stream ,client-var stream)))
+           (check-type character character)
+           (stream-unread-char s character)
+           nil))
+
+       (defun ,(ensure-symbol '#:peek-char intrinsic-pkg)
+           (&optional peek-type stream (eof-error-p t) eof-value recursive-p)
+         (check-type peek-type (or (eql t) (eql nil) character))
+         (let ((s (coerce-input-stream ,client-var stream)))
+           (if (characterp peek-type)
+               (loop for ch = (read-char s eof-error-p nil recursive-p)
+                     until (or (not ch)
+                               (char= ch peek-type))
+                     finally (return (cond (ch
+                                            (unread-char ch s)
+                                            ch)
+                                           (t
+                                            eof-value))))
+               (let ((ch (if peek-type
+                             (stream-peek-char-skip-whitespace s)
+                             (stream-peek-char s))))
+                 (cond ((not (eql ch :eof)) ch)
+                       (eof-error-p
+                        (error 'end-of-file :stream s))
+                       (t eof-value))))))
+
+       (defun ,(ensure-symbol '#:clear-input intrinsic-pkg)
+           (&optional stream)
+         (stream-clear-input (coerce-input-stream ,client-var stream))
+         nil)
+
+       (defun ,(ensure-symbol '#:finish-output intrinsic-pkg)
+           (&optional output-stream)
+         (stream-finish-output (coerce-output-stream ,client-var output-stream))
+         nil)
+
+       (defun ,(ensure-symbol '#:force-output intrinsic-pkg)
+           (&optional output-stream)
+         (stream-force-output (coerce-output-stream ,client-var output-stream))
+         nil)
+
+       (defun ,(ensure-symbol '#:clear-output intrinsic-pkg)
+           (&optional output-stream)
+         (stream-clear-output (coerce-output-stream ,client-var output-stream))
+         nil)
+
+       (defun ,(ensure-symbol '#:write-char intrinsic-pkg)
+           (character &optional stream)
+         (let ((s (coerce-output-stream ,client-var stream)))
+           (check-type character character)
+           (stream-write-char s character)
+           character))
+
+       (defun,(ensure-symbol '#:listen intrinsic-pkg)
+           (&optional input-stream)
+         (stream-listen (coerce-input-stream ,client-var input-stream)))
+
+       (defun ,(ensure-symbol '#:y-or-n-p intrinsic-pkg)
+           (&optional control &rest arguments)
+         (declare (dynamic-extent arguments))
+         (when control
+           (fresh-line *query-io*)
+           (apply 'format *query-io* control arguments)
+           (write-char #\Space *query-io*))
+         (format *query-io* "(Y or N) ")
+         (loop
+           (clear-input *query-io*)
+           (let ((c (read-char *query-io*)))
+             (when (char-equal c #\Y)
+               (return t))
+             (when (char-equal c #\N)
+               (return nil)))
+           (fresh-line *query-io*)
+           (format *query-io* "Please respond with \"y\" or \"n\". ")))
+
+       (defun ,(ensure-symbol '#:yes-or-no-p intrinsic-pkg)
+           (&optional control &rest arguments)
+         (declare (dynamic-extent arguments))
+         (when control
+           (fresh-line *query-io*)
+           (apply 'format *query-io* control arguments)
+           (write-char #\Space *query-io*))
+         (format *query-io* "(Yes or No) ")
+         (loop
+           (clear-input *query-io*)
+           (let ((line (read-line *query-io*)))
+             (when (string-equal line "yes")
+               (return t))
+             (when (string-equal line "no")
+               (return nil)))
+           (fresh-line *query-io*)
+           (format *query-io* "Please respond with \"yes\" or \"no\". ")))
+
+       (defun ,(ensure-symbol '#:write-string intrinsic-pkg)
+           (string &optional stream &key (start 0) end)
+         (check-type string string)
+         (stream-write-string (coerce-output-stream ,client-var stream) string start end)
+         string)
+
+       (defun ,(ensure-symbol '#:write-line intrinsic-pkg)
+           (string &optional stream &key (start 0) end)
+         (check-type string string)
+         (let ((stream (coerce-output-stream ,client-var stream)))
+           (stream-write-string stream string start end)
+           (stream-terpri stream))
+         string)
+
+       (defun ,(ensure-symbol '#:terpri intrinsic-pkg)
+           (&optional stream)
+         (stream-terpri (coerce-output-stream ,client-var stream))
+         nil)
+
+       (defun ,(ensure-symbol '#:fresh-line intrinsic-pkg)
+           (&optional stream)
+         (stream-fresh-line (coerce-output-stream ,client-var stream)))
+
+       (defun ,(ensure-symbol '#:start-line-p)
+           (&optional stream)
+         (stream-start-line-p (coerce-output-stream ,client-var stream)))
+
+       (defun ,(ensure-symbol '#:line-column)
+           (&optional stream)
+         (stream-line-column (coerce-output-stream ,client-var stream)))
+
+       (defun ,(ensure-symbol '#:line-length)
+           (&optional stream)
+         (stream-line-length (coerce-output-stream ,client-var stream)))
+
+       (defun ,(ensure-symbol '#:advance-to-column)
+           (column &optional stream)
+         (stream-advance-to-column (coerce-output-stream ,client-var stream) column)))))
+
+#+(or)(defun listen-byte (&optional input-stream)
   ;; Note: Unlike STREAM-LISTEN, STREAM-LISTEN-BYTE may return :EOF
   ;; to indicate that the stream is at EOF. This should be equivalent to NIL.
   ;; It is used in the default implementation of STREAM-READ-BYTE-NO-HANG.
-  (let ((result (stream-listen-byte (frob-input-stream input-stream))))
+  (let ((result (stream-listen-byte (coerce-input-stream ,client-var input-stream))))
     (cond ((or (eql result :eof)
                (not result))
            nil)
           (t))))
 
-(defun read-byte (stream &optional (eof-error-p t) eof-value)
-  (let ((b (stream-read-byte (frob-input-stream stream))))
-    (check-type b (or integer (eql :eof)))
-    (if (eql b :eof)
-        (if eof-error-p
-            (error 'end-of-file :stream stream)
-            eof-value)
-        b)))
-
-(defun read-byte-no-hang (stream &optional (eof-error-p t) eof-value)
-  (let* ((s (frob-input-stream stream))
+#+(or)(defun read-byte-no-hang (stream &optional (eof-error-p t) eof-value)
+  (let* ((s (coerce-input-stream ,client-var stream))
          (b (stream-read-byte-no-hang s)))
     (check-type b (or integer (eql :eof) null))
     (cond ((eql b :eof)
@@ -136,149 +348,21 @@
            eof-value)
           (b))))
 
-(defun write-byte (byte stream)
-  (stream-write-byte (frob-output-stream stream) byte))
-
-(defun read-sequence (sequence stream &key (start 0) end)
-  (stream-read-sequence (frob-input-stream stream) sequence
-                                 start end))
-
-(defun write-sequence (sequence stream &key (start 0) end)
-  (stream-write-sequence (frob-output-stream stream) sequence
-                                  start end)
-  sequence)
-
-(defun file-position (stream &optional (position-spec nil position-spec-p))
-  (check-type stream stream)
-  (cond (position-spec-p
-         (check-type position-spec (or (integer 0) (member :start :end)))
-         (stream-file-position stream position-spec))
-        (t
-         (stream-file-position stream))))
-
-(defun file-length (stream)
-  (check-type stream stream)
-  (stream-file-length stream))
-
-(defun file-string-length (stream object)
-  (check-type stream stream)
-  (check-type object (or string character))
-  (when (characterp object)
-    (setf object (string object)))
-  (stream-file-string-length stream object))
-
-(defmacro with-stream-editor ((stream recursive-p) &body body)
+#+(or)(defmacro with-stream-editor ((stream recursive-p) &body body)
   "Activate the stream editor functionality for STREAM."
   `(%with-stream-editor ,stream ,recursive-p (lambda () (progn ,@body))))
 
-(defun %with-stream-editor (stream recursive-p fn)
+#+(or)(defun %with-stream-editor (stream recursive-p fn)
   (cond ((typep stream 'synonym-stream)
          (%with-stream-editor (symbol-value (synonym-stream-symbol stream)) recursive-p fn))
         (recursive-p
          (funcall fn))
         (t (stream-with-edit stream fn))))
 
-(defmethod stream-with-edit ((stream stream) fn)
+#+(or)(defmethod stream-with-edit ((stream stream) fn)
   (funcall fn))
 
-(defun read-char (&optional stream (eof-error-p t) eof-value recursive-p)
-  (declare (ignore recursive-p))
-  (let* ((s (frob-input-stream stream))
-         (c (stream-read-char s)))
-    (check-type c (or character (eql :eof)))
-    (cond ((eql c :eof)
-           (when eof-error-p
-             (error 'end-of-file :stream s))
-           eof-value)
-          (c))))
-
-(defun read-char-no-hang (&optional stream (eof-error-p t) eof-value recursive-p)
-  (declare (ignore recursive-p))
-  (let* ((s (frob-input-stream stream))
-         (c (stream-read-char-no-hang s)))
-    (check-type c (or character (eql :eof) null))
-    (cond ((eql c :eof)
-           (when eof-error-p
-             (error 'end-of-file :stream s))
-           eof-value)
-          (c))))
-
-(defun read-line (&optional input-stream (eof-error-p t) eof-value recursive-p)
-  (declare (ignore recursive-p))
-  (setf input-stream (frob-input-stream input-stream))
-  (multiple-value-bind (line missing-newline-p)
-      (stream-read-line input-stream)
-    (if (and (zerop (length line))
-             missing-newline-p)
-        (if eof-error-p
-            (error 'end-of-file :stream input-stream)
-            (values eof-value t))
-        (values line missing-newline-p))))
-
-(defun unread-char (character &optional stream)
-  (let ((s (frob-input-stream stream)))
-    (check-type character character)
-    (stream-unread-char s character)
-    nil))
-
-(defun peek-char (&optional peek-type stream (eof-error-p t) eof-value recursive-p)
-  (check-type peek-type (or (eql t) (eql nil) character))
-  (let ((s (frob-input-stream stream)))
-    (if (characterp peek-type)
-        (loop for ch = (read-char s eof-error-p nil recursive-p)
-              until (or (not ch)
-                        (char= ch peek-type))
-              finally (return (cond (ch
-                                     (unread-char ch s)
-                                     ch)
-                                    (t
-                                     eof-value))))
-        (let ((ch (if peek-type
-                      (stream-peek-char-skip-whitespace s)
-                      (stream-peek-char s))))
-          (cond ((not (eql ch :eof)) ch)
-                (eof-error-p
-                 (error 'end-of-file :stream s))
-                (t eof-value))))))
-
-(defun clear-input (&optional stream)
-  (stream-clear-input (frob-input-stream stream))
-  nil)
-
-(defun finish-output (&optional output-stream)
-  (stream-finish-output (frob-output-stream output-stream))
-  nil)
-
-(defun force-output (&optional output-stream)
-  (stream-force-output (frob-output-stream output-stream))
-  nil)
-
-(defun clear-output (&optional output-stream)
-  (stream-clear-output (frob-output-stream output-stream))
-  nil)
-
-(defun write-char (character &optional stream)
-  (let ((s (frob-output-stream stream)))
-    (check-type character character)
-    (stream-write-char s character)
-    character))
-
-(defun start-line-p (&optional stream)
-  (stream-start-line-p (frob-output-stream stream)))
-
-(defun advance-to-column (column &optional stream)
-  (stream-advance-to-column (frob-output-stream stream) column))
-
-(defun line-column (&optional stream)
-  (stream-line-column (frob-output-stream stream)))
-
-(defun line-length (&optional stream)
-  (stream-line-length (frob-output-stream stream)))
-
-(defun listen (&optional input-stream)
-  (stream-listen (frob-input-stream input-stream)))
-
-(defclass case-correcting-stream (fundamental-character-output-stream)
+#+(or)(defclass case-correcting-stream (fundamental-character-output-stream)
   ((stream :initarg :stream)
    (case :initarg :case)
    (position :initform :initial))
@@ -290,12 +374,12 @@ CASE may be one of:
 :TITLECASE - Capitalise the start of each word, downcase the remaining letters.
 :SENTENCECASE - Capitalise the start of the first word."))
 
-(defun make-case-correcting-stream (stream case)
+#+(or)(defun make-case-correcting-stream (stream case)
   (make-instance 'case-correcting-stream
                  :stream stream
                  :case case))
 
-(defun case-correcting-write (character stream)
+#+(or)(defun case-correcting-write (character stream)
   (ecase (slot-value stream 'case)
     (:upcase (write-char (char-upcase character) (slot-value stream 'stream)))
     (:downcase (write-char (char-downcase character) (slot-value stream 'stream)))
@@ -324,15 +408,15 @@ CASE may be one of:
              (write-char character (slot-value stream 'stream)))
          (write-char (char-downcase character) (slot-value stream 'stream))))))
 
-(defmethod stream-write-char ((stream case-correcting-stream) character)
+#+(or)(defmethod stream-write-char ((stream case-correcting-stream) character)
   (case-correcting-write character stream))
 
-(defclass simple-edit-mixin ()
+#+(or)(defclass simple-edit-mixin ()
   ((edit-buffer :initform nil)
    (edit-offset :initform nil)
    (edit-handler :initform nil)))
 
-(defmethod stream-read-char :around ((stream simple-edit-mixin))
+#+(or)(defmethod stream-read-char :around ((stream simple-edit-mixin))
   (let ((buffer (slot-value stream 'edit-buffer))
         (offset (slot-value stream 'edit-offset)))
     (if (and buffer (< offset (fill-pointer buffer)))
@@ -350,12 +434,12 @@ CASE may be one of:
                      (when (slot-value stream 'edit-handler)
                        (funcall (slot-value stream 'edit-handler) ch))))))))))
 
-(defmethod stream-clear-input :before ((stream simple-edit-mixin))
+#+(or)(defmethod stream-clear-input :before ((stream simple-edit-mixin))
   (when (slot-value stream 'edit-buffer)
     (setf (fill-pointer (slot-value stream 'edit-buffer)) 0
           (slot-value stream 'edit-offset) 0)))
 
-(defmethod stream-with-edit ((stream simple-edit-mixin) fn)
+#+(or)(defmethod stream-with-edit ((stream simple-edit-mixin) fn)
   (let ((old-buffer (slot-value stream 'edit-buffer))
         (old-offset (slot-value stream 'edit-offset))
         (old-handler (slot-value stream 'edit-handler))
@@ -431,58 +515,3 @@ CASE may be one of:
                :start2 start
                :end2 end)
       seq)))
-
-(defun y-or-n-p (&optional control &rest arguments)
-  (declare (dynamic-extent arguments))
-  (when control
-    (fresh-line *query-io*)
-    (apply 'format *query-io* control arguments)
-    (write-char #\Space *query-io*))
-  (format *query-io* "(Y or N) ")
-  (loop
-     (clear-input *query-io*)
-     (let ((c (read-char *query-io*)))
-       (when (char-equal c #\Y)
-         (return t))
-       (when (char-equal c #\N)
-         (return nil)))
-     (fresh-line *query-io*)
-     (format *query-io* "Please respond with \"y\" or \"n\". ")))
-
-(defun yes-or-no-p (&optional control &rest arguments)
-  (declare (dynamic-extent arguments))
-  (when control
-    (fresh-line *query-io*)
-    (apply 'format *query-io* control arguments)
-    (write-char #\Space *query-io*))
-  (format *query-io* "(Yes or No) ")
-  (loop
-     (clear-input *query-io*)
-     (let ((line (read-line *query-io*)))
-       (when (string-equal line "yes")
-         (return t))
-       (when (string-equal line "no")
-         (return nil)))
-     (fresh-line *query-io*)
-     (format *query-io* "Please respond with \"yes\" or \"no\". ")))
-
-(defun write-string (string &optional stream &key (start 0) end)
-  (check-type string string)
-  (stream-write-string (frob-output-stream stream) string start end)
-  string)
-
-(defun write-line (string &optional stream &key (start 0) end)
-  (check-type string string)
-  (let ((stream (frob-output-stream stream)))
-    (stream-write-string stream string start end)
-    (stream-terpri stream))
-  string)
-
-(defun terpri (&optional stream)
-  (stream-terpri (frob-output-stream stream))
-  nil)
-
-(defun fresh-line (&optional stream)
-  (stream-fresh-line (frob-output-stream stream)))
-
-

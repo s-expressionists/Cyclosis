@@ -96,6 +96,8 @@
 
 (defgeneric stream-element-type (stream))
 
+(defgeneric (setf stream-element-type) (new-value stream))
+
 ;;; Binary streams
 
 (defgeneric stream-read-byte (stream))
@@ -107,6 +109,8 @@
 ;;; Common Lisp functions made generic
 
 (defgeneric stream-external-format (stream))
+
+(defgeneric (setf stream-external-format) (new-value stream))
 
 (defgeneric interactive-stream-p (stream))
 

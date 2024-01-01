@@ -2,54 +2,26 @@
 
 (defpackage #:cyclosis-extrinsic
   (:use #:cl)
-  (:shadow #:broadcast-stream
-           #:broadcast-stream-streams
+  (:shadow #:*standard-input*
+           #:*standard-output*
+           #:*terminal-io*
            #:clear-input
            #:clear-output
-           #:close
-           #:concatenated-stream
-           #:concatenated-stream-streams
-           #:echo-stream
-           #:echo-stream-input-stream
-           #:echo-stream-output-stream
            #:file-length
            #:file-position
-           #:file-stream
            #:file-string-length
            #:finish-output
            #:force-output
            #:fresh-line
-           #:get-output-stream-string
-           #:input-stream-p
-           #:interactive-stream-p
            #:listen
-           #:make-broadcast-stream
-           #:make-concatenated-stream
-           #:make-echo-stream
-           #:make-string-input-stream
-           #:make-string-output-stream
-           #:make-synonym-stream
-           #:make-two-way-stream
            #:open
-           #:open-stream-p
-           #:output-stream-p
            #:peek-char
            #:read-byte
            #:read-char
            #:read-char-no-hang
            #:read-line
            #:read-sequence
-           #:stream
-           #:stream-element-type
-           #:stream-external-format
-           #:streamp
-           #:string-stream
-           #:synonym-stream
-           #:synonym-stream-symbol
            #:terpri
-           #:two-way-stream
-           #:two-way-stream-input-stream
-           #:two-way-stream-output-stream
            #:unread-char
            #:with-input-from-string
            #:with-open-file
@@ -62,7 +34,43 @@
            #:write-string
            #:y-or-n-p
            #:yes-or-no-p)
-  (:export #:broadcast-stream
+  (:shadowing-import-from #:cyclosis
+                          #:broadcast-stream
+                          #:broadcast-stream-streams
+                          #:close
+                          #:concatenated-stream
+                          #:concatenated-stream-streams
+                          #:echo-stream
+                          #:echo-stream-input-stream
+                          #:echo-stream-output-stream
+                          #:file-stream
+                          #:get-output-stream-string
+                          #:input-stream-p
+                          #:interactive-stream-p
+                          #:make-broadcast-stream
+                          #:make-concatenated-stream
+                          #:make-echo-stream
+                          #:make-string-input-stream
+                          #:make-string-output-stream
+                          #:make-synonym-stream
+                          #:make-two-way-stream
+                          #:open-stream-p
+                          #:output-stream-p
+                          #:stream
+                          #:stream-element-type
+                          #:stream-external-format
+                          #:streamp
+                          #:string-stream
+                          #:synonym-stream
+                          #:synonym-stream-symbol
+                          #:two-way-stream
+                          #:two-way-stream-input-stream
+                          #:two-way-stream-output-stream)
+  (:export #:*standard-input*
+           #:*standard-output*
+           #:*terminal-io*
+           #:advance-to-column
+           #:broadcast-stream
            #:broadcast-stream-streams
            #:clear-input
            #:clear-output
@@ -82,6 +90,8 @@
            #:get-output-stream-string
            #:input-stream-p
            #:interactive-stream-p
+           #:line-column
+           #:line-length
            #:listen
            #:make-broadcast-stream
            #:make-concatenated-stream
@@ -99,6 +109,7 @@
            #:read-char-no-hang
            #:read-line
            #:read-sequence
+           #:start-line-p
            #:stream
            #:stream-element-type
            #:stream-external-format

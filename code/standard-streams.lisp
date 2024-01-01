@@ -2,6 +2,29 @@
 
 (cl:in-package #:cyclosis)
 
+(defun expand-with-open-stream (var stream body)
+  (multiple-value-bind (body-forms declares)
+      (alexandria:parse-body body)
+    `(let ((,var ,stream))
+       ,@declares
+       (unwind-protect
+            (progn ,@body-forms)
+         (close ,var)))))
+
+(defun expand-with-open-file (open-sym var filespec options body)
+  (multiple-value-bind (body-forms declares)
+      (alexandria:parse-body body)
+    (let ((abortp (gensym "ABORTP")))
+      `(let ((,var (,open-sym ,filespec ,@options))
+             (,abortp t))
+         ,@declares
+         (unwind-protect
+              (multiple-value-prog1
+                  (progn ,@body-forms)
+                (setf ,abortp nil))
+           (when ,var
+             (close ,var :abort ,abortp)))))))
+
 (defclass file-stream (stream) ())
 (defclass string-stream (stream) ())
 
@@ -609,14 +632,14 @@
           (t
            0))))
 
-(defmacro with-output-to-string
-    ((var &optional string-form &key (element-type ''character)) &body body)
-  (if string-form
-      `(with-open-stream (,var (make-string-output-stream :string ,string-form :element-type ,element-type))
-         ,@body)
-      `(with-open-stream (,var (make-string-output-stream :element-type ,element-type))
-         ,@body
-         (get-output-stream-string ,var))))
+(defun expand-with-output-to-string
+    (var string-form element-type body)
+  (expand-with-open-stream var
+                           (if string-form
+                               `(make-string-output-stream :string ,string-form :element-type ,element-type)
+                               `(make-string-output-stream :element-type ,element-type))
+                           `(,@body
+                             (get-output-stream-string ,var))))
 
 ;;; String input stream and with-input-from-string.
 
@@ -653,16 +676,17 @@
     (incf (slot-value stream 'start) provided)
     (+ start provided)))
 
-(defmacro with-input-from-string
-    ((var string &key (start 0) end index) &body body)
-  (cond (index
-         (multiple-value-bind (body-forms declares)
-             (alexandria:parse-body body)
-           `(with-open-stream (,var (make-string-input-stream ,string ,start ,end))
-              ,@declares
-              (multiple-value-prog1
-                  (progn ,@body-forms)
-                (setf ,index (string-input-stream-position ,var))))))
-        (t
-         `(with-open-stream (,var (make-string-input-stream ,string ,start ,end))
-            ,@body))))
+(defun expand-with-input-from-string
+    (var string start end index body)
+  (if index
+      (multiple-value-bind (body-forms declares)
+          (alexandria:parse-body body)
+        (expand-with-open-stream var
+                                 `(make-string-input-stream ,string ,start ,end)
+                                 `(@declares
+                                   (multiple-value-prog1
+                                       (progn ,@body-forms)
+                                     (setf ,index (string-input-stream-position ,var))))))
+      (expand-with-open-stream var
+                               `(make-string-input-stream ,string ,start ,end)
+                               body)))
