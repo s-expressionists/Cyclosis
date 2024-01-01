@@ -155,9 +155,8 @@
 
 (defmacro define-interface (client-var &key intrinsic)
   (let* ((intrinsic-pkg (if intrinsic (find-package '#:common-lisp) *package*))
-         (open-sym (ensure-symbol '#:open intrinsic-pkg)))
-    `(progn
-       (shadowing-import '(cyclosis:broadcast-stream
+         (open-sym (ensure-symbol '#:open intrinsic-pkg))
+         (symbols '(cyclosis:broadcast-stream
                            cyclosis:broadcast-stream-streams
                            cyclosis:close
                            cyclosis:concatenated-stream
@@ -187,8 +186,11 @@
                            cyclosis:synonym-stream-symbol
                            cyclosis:two-way-stream
                            cyclosis:two-way-stream-input-stream
-                           cyclosis:two-way-stream-output-stream)
-                         ,intrinsic-pkg)
+                           cyclosis:two-way-stream-output-stream)))
+    `(progn
+       (shadowing-import ',symbols ,intrinsic-pkg)
+
+       (export ',symbols ,intrinsic-pkg)
 
        (defun ,open-sym
            (filespec
@@ -231,7 +233,7 @@
          (expand-with-open-file ',open-sym var filespec options body))
 
        (defmacro ,(ensure-symbol '#:with-input-from-string intrinsic-pkg)
-           ((var string &key index start end) &body body)
+           ((var string &key index (start 0) end) &body body)
          (expand-with-input-from-string var string start end index body))
 
        (defmacro ,(ensure-symbol '#:with-output-to-string intrinsic-pkg)

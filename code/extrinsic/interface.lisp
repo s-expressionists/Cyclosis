@@ -48,6 +48,9 @@
 (defmethod cyclosis:stream-fresh-line ((stream extrinsic-file-stream))
   (cl:fresh-line (target stream)))
 
+(defmethod cyclosis:stream-clear-output ((stream extrinsic-file-stream))
+  (cl:clear-output (target stream)))
+
 (defmethod cyclosis:stream-finish-output ((stream extrinsic-file-stream))
   (cl:finish-output (target stream)))
 
@@ -74,6 +77,18 @@
 
 (defmethod cyclosis:stream-write-byte ((stream extrinsic-file-stream) integer)
   (cl:write-byte integer (target stream)))
+
+(defmethod cyclosis:stream-file-length ((stream extrinsic-file-stream))
+  (cl:file-length (target stream)))
+
+(defmethod cyclosis:stream-file-position
+    ((stream extrinsic-file-stream) &optional position)
+  (if position
+      (cl:file-position (target stream) position)
+      (cl:file-position (target stream))))
+
+(defmethod cyclosis:stream-file-string-length ((stream extrinsic-file-stream) object)
+  (cl:file-string-length (target stream) object))
 
 (defmethod cyclosis:make-file-stream
     ((client extrinsic-client) path direction
@@ -145,7 +160,15 @@
 
 (defparameter *standard-output* (replicate-stream cl:*standard-output* :output))
 
+(defparameter *error-output* (replicate-stream cl:*error-output* :output))
+
+(defparameter *trace-output* (replicate-stream cl:*trace-output* :output))
+
 (defparameter *terminal-io* (replicate-stream cl:*terminal-io* :io))
+
+(defparameter *debug-io* (replicate-stream cl:*debug-io* :io))
+
+(defparameter *query-io* (replicate-stream cl:*query-io* :io))
 
 (defmethod cyclosis:coerce-input-stream
     ((client extrinsic-client) (designator null))

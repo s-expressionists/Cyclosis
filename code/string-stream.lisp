@@ -102,7 +102,8 @@
                                unread-char-mixin
                                string-stream)
   ((string :initarg :string)
-   (start :initarg :start :reader string-input-stream-position)
+   (start :initarg :start
+          :reader string-input-stream-position)
    (end :initarg :end)))
 
 (defun make-string-input-stream (string &optional (start 0) end)

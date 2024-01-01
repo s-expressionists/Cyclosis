@@ -2,9 +2,13 @@
 
 (defpackage #:cyclosis-extrinsic
   (:use #:cl)
-  (:shadow #:*standard-input*
+  (:shadow #:*debug-io*
+           #:*error-output*
+           #:*query-io*
+           #:*standard-input*
            #:*standard-output*
            #:*terminal-io*
+           #:*trace-output*
            #:clear-input
            #:clear-output
            #:file-length
@@ -35,9 +39,13 @@
            #:y-or-n-p
            #:yes-or-no-p)
   (:export #:*client*
+           #:*debug-io*
+           #:*error-output*
+           #:*query-io*
            #:*standard-input*
            #:*standard-output*
            #:*terminal-io*
+           #:*trace-output*
            #:advance-to-column
            #:broadcast-stream
            #:broadcast-stream-streams
