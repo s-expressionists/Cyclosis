@@ -1,140 +1,4 @@
-;;;; Definitions of Gray streams classes and functions.
-
 (cl:in-package #:cyclosis)
-
-;;; The standard stream class.
-
-(defclass stream () ())
-
-;;; Gray Streams classes.
-
-(defclass fundamental-stream (stream)
-  ((%openp :initform t :accessor stream-open-p))
-  (:documentation "The base class for all Gray streams."))
-
-(defclass fundamental-input-stream (fundamental-stream)
-  ()
-  (:documentation "A superclass of all Gray input streams."))
-
-(defclass fundamental-output-stream (fundamental-stream)
-  ()
-  (:documentation "A superclass of all Gray output streams."))
-
-(defclass fundamental-character-stream (fundamental-stream)
-  ()
-  (:documentation "A superclass of all Gray streams whose element-type is a subtype of character."))
-
-(defclass fundamental-binary-stream (fundamental-stream)
-  ()
-  (:documentation "A superclass of all Gray streams whose element-type is a subtype of unsigned-byte or signed-byte."))
-
-(defclass fundamental-character-input-stream (fundamental-input-stream fundamental-character-stream)
-  ()
-  (:documentation "A superclass of all Gray input streams whose element-type is a subtype of unsigned-byte or signed-byte."))
-
-(defclass fundamental-character-output-stream (fundamental-output-stream fundamental-character-stream)
-  ()
-  (:documentation "A superclass of all Gray output streams whose element-type is a subtype of character."))
-
-(defclass fundamental-binary-input-stream (fundamental-input-stream fundamental-binary-stream)
-  ()
-  (:documentation "A superclass of all Gray input streams whose element-type is a subtype of unsigned-byte or signed-byte."))
-
-(defclass fundamental-binary-output-stream (fundamental-output-stream fundamental-binary-stream)
-  ()
-  (:documentation "A superclass of all Gray output streams whose element-type is a subtype of unsigned-byte or signed-byte."))
-
-;;; Character input
-
-(defgeneric stream-read-char (stream))
-
-(defgeneric stream-unread-char (stream character))
-
-(defgeneric stream-read-char-no-hang (stream))
-
-(defgeneric stream-peek-char (stream))
-
-(defgeneric stream-listen (stream))
-
-(defgeneric stream-read-line (stream))
-
-(defgeneric stream-clear-input (stream))
-
-;;; Character output
-
-(defgeneric stream-write-char (stream character))
-
-(defgeneric stream-line-column (stream))
-
-(defgeneric stream-start-line-p (stream))
-
-(defgeneric stream-write-string (stream string &optional start end))
-
-(defgeneric stream-terpri (stream))
-
-(defgeneric stream-fresh-line (stream))
-
-(defgeneric stream-finish-output (stream))
-
-(defgeneric stream-force-output (stream))
-
-(defgeneric stream-clear-output (stream))
-
-(defgeneric stream-advance-to-column (stream column))
-
-;;; Other functions
-
-(defgeneric close (stream &key abort))
-
-(defgeneric open-stream-p (stream))
-
-(defgeneric streamp (stream))
-
-(defgeneric input-stream-p (stream))
-
-(defgeneric output-stream-p (stream))
-
-(defgeneric stream-element-type (stream))
-
-(defgeneric (setf stream-element-type) (new-value stream))
-
-;;; Binary streams
-
-(defgeneric stream-read-byte (stream))
-
-(defgeneric stream-write-byte (stream integer))
-
-;;; Extensions to Gray Streams
-
-;;; Common Lisp functions made generic
-
-(defgeneric stream-external-format (stream))
-
-(defgeneric (setf stream-external-format) (new-value stream))
-
-(defgeneric interactive-stream-p (stream))
-
-;;; Generic support for other CL stream functions
-
-(defgeneric stream-file-position (stream &optional position-spec))
-
-(defgeneric stream-file-length (stream))
-
-(defgeneric stream-file-string-length (stream string))
-
-(defgeneric stream-read-sequence (stream seq &optional start end))
-
-(defgeneric stream-write-sequence (stream seq &optional start end))
-
-;;; Generalization for byte streams and other extensions
-
-(defgeneric stream-read-byte-no-hang (stream))
-
-(defgeneric stream-listen-byte (stream))
-
-(defgeneric stream-line-length (stream))
-
-(defgeneric stream-peek-char-skip-whitespace (stream))
 
 ;;; Default Gray methods
 
@@ -249,13 +113,17 @@
 (defmethod stream-force-output ((stream fundamental-output-stream))
   nil)
 
-(defmethod stream-read-byte-no-hang ((stream fundamental-binary-input-stream))
+;; TWB: This came from Mezzano. This isn't implemented like this in
+;; other implementations, so I am removing them for now.
+#+(or)(defmethod stream-read-byte-no-hang ((stream fundamental-binary-input-stream))
   (ecase (stream-listen-byte stream)
     ((:eof) :eof)
     ((t) (read-byte stream nil :eof))
     ((nil) nil)))
 
-(defmethod stream-listen-byte ((stream fundamental-binary-input-stream))
+;; TWB: This came from Mezzano. This isn't implemented like this in
+;; other implementations, so I am removing them for now.
+#+(or)(defmethod stream-listen-byte ((stream fundamental-binary-input-stream))
   t)
 
 (defmethod stream-peek-char ((stream fundamental-character-input-stream))
@@ -264,7 +132,9 @@
           (t (unread-char ch stream)
              ch))))
 
-(defmethod stream-peek-char-skip-whitespace
+;; TWB: This came from Mezzano. This isn't implemented like this in
+;; other implementations, so I am removing them for now.
+#+(or)(defmethod stream-peek-char-skip-whitespace
     ((stream fundamental-character-input-stream))
   (loop for ch = (stream-peek-char stream)
         while (equal ch #\Space)
@@ -352,3 +222,21 @@
 
 (defmethod stream-clear-input :before ((stream unread-char-mixin))
   (setf (slot-value stream 'unread-char) nil))
+
+;;; Coerce
+
+(defmethod cyclosis:coerce-input-stream (client designator)
+  (declare (ignore client))
+  (unless (input-stream-p designator)
+    (error 'type-error :datum designator :expected-type 'stream))
+  (unless (open-stream-p designator)
+    (error 'stream-error :stream designator))
+  designator)
+
+(defmethod cyclosis:coerce-output-stream (client designator)
+  (declare (ignore client))
+  (unless (output-stream-p designator)
+    (error 'type-error :datum designator :expected-type 'stream))
+  (unless (open-stream-p designator)
+    (error 'stream-error :stream designator))
+  designator)

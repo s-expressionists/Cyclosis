@@ -34,39 +34,8 @@
            #:write-string
            #:y-or-n-p
            #:yes-or-no-p)
-  (:shadowing-import-from #:cyclosis
-                          #:broadcast-stream
-                          #:broadcast-stream-streams
-                          #:close
-                          #:concatenated-stream
-                          #:concatenated-stream-streams
-                          #:echo-stream
-                          #:echo-stream-input-stream
-                          #:echo-stream-output-stream
-                          #:file-stream
-                          #:get-output-stream-string
-                          #:input-stream-p
-                          #:interactive-stream-p
-                          #:make-broadcast-stream
-                          #:make-concatenated-stream
-                          #:make-echo-stream
-                          #:make-string-input-stream
-                          #:make-string-output-stream
-                          #:make-synonym-stream
-                          #:make-two-way-stream
-                          #:open-stream-p
-                          #:output-stream-p
-                          #:stream
-                          #:stream-element-type
-                          #:stream-external-format
-                          #:streamp
-                          #:string-stream
-                          #:synonym-stream
-                          #:synonym-stream-symbol
-                          #:two-way-stream
-                          #:two-way-stream-input-stream
-                          #:two-way-stream-output-stream)
-  (:export #:*standard-input*
+  (:export #:*client*
+           #:*standard-input*
            #:*standard-output*
            #:*terminal-io*
            #:advance-to-column

@@ -5,6 +5,12 @@
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")
-                             (:file "gray-streams")
-                             (:file "standard-streams")
-                             (:file "stream")))))
+                             (:file "interface")
+                             (:file "default-methods")
+                             (:file "stream")
+                             (:file "broadcast-stream")
+                             (:file "concatenated-stream")
+                             (:file "echo-stream")
+                             (:file "string-stream")
+                             (:file "synonym-stream")
+                             (:file "two-way-stream")))))
