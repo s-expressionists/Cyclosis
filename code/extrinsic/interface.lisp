@@ -22,7 +22,7 @@
   (cl:unread-char character (target stream)))
 
 (defmethod cyclosis:stream-read-char-no-hang ((stream extrinsic-file-stream))
-  (cl:read-char-no-hang (target stream) nil))
+  (cl:read-char-no-hang (target stream) nil :eof))
 
 (defmethod cyclosis:stream-peek-char ((stream extrinsic-file-stream))
   (cl:peek-char nil (target stream) nil :eof))
@@ -89,6 +89,14 @@
 
 (defmethod cyclosis:stream-file-string-length ((stream extrinsic-file-stream) object)
   (cl:file-string-length (target stream) object))
+
+(defmethod cyclosis:stream-write-sequence
+    ((stream extrinsic-file-stream) sequence &optional (start 0) end)
+  (cl:write-sequence sequence (target stream) :start start :end end))
+
+(defmethod cyclosis:stream-read-sequence
+    ((stream extrinsic-file-stream) sequence &optional (start 0) end)
+  (cl:read-sequence sequence (target stream) :start start :end end))
 
 (defmethod cyclosis:make-file-stream
     ((client extrinsic-client) path direction

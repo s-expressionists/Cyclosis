@@ -237,7 +237,7 @@
          (expand-with-input-from-string var string start end index body))
 
        (defmacro ,(ensure-symbol '#:with-output-to-string intrinsic-pkg)
-           ((var &optional string-form &key element-type) &body body)
+           ((var &optional string-form &key (element-type ''character)) &body body)
          (expand-with-output-to-string var string-form element-type body))
 
        (defun ,(ensure-symbol '#:read-byte intrinsic-pkg)

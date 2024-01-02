@@ -87,6 +87,9 @@
           (t
            0))))
 
+#+(or)(defmethod stream-file-position ((stream string-output-stream) &optional position)
+  (length (string-output-stream-string stream)))
+
 (defun expand-with-output-to-string
     (var string-form element-type body)
   (expand-with-open-stream var

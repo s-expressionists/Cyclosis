@@ -26,15 +26,15 @@
              (not (and (vectorp sequence)
                        (subtypep (array-element-type sequence) 'integer))))
         (dotimes (i n end)
-          (let ((elt (read-char stream nil)))
-            (if elt
-                (setf (elt sequence (+ start i)) elt)
-                (return (+ start i)))))
+          (let ((elt (stream-read-char stream)))
+            (if (eq elt :eof)
+                (return (+ start i))
+                (setf (elt sequence (+ start i)) elt))))
         (dotimes (i n end)
-          (let ((elt (read-byte stream nil)))
-            (if elt
-                (setf (elt sequence (+ start i)) elt)
-                (return (+ start i))))))))
+          (let ((elt (stream-read-byte stream)))
+            (if (eq elt :eof)
+                (return (+ start i))
+                (setf (elt sequence (+ start i)) elt)))))))
 
 (defmethod stream-write-sequence
     ((stream fundamental-output-stream) sequence &optional (start 0) end)
@@ -44,9 +44,9 @@
              (not (and (vectorp sequence)
                        (subtypep (array-element-type sequence) 'integer))))
         (dotimes (i n)
-          (write-char (elt sequence (+ start i)) stream))
+          (stream-write-char stream (elt sequence (+ start i))))
         (dotimes (i n)
-          (write-byte (elt sequence (+ start i)) stream))))
+          (stream-write-byte stream (elt sequence (+ start i))))))
   sequence)
 
 (defmethod close ((stream fundamental-stream) &key abort)
@@ -127,9 +127,9 @@
   t)
 
 (defmethod stream-peek-char ((stream fundamental-character-input-stream))
-  (let ((ch (read-char stream nil :eof)))
+  (let ((ch (stream-read-char stream)))
     (cond ((eql ch :eof) :eof)
-          (t (unread-char ch stream)
+          (t (stream-unread-char stream ch)
              ch))))
 
 ;; TWB: This came from Mezzano. This isn't implemented like this in
@@ -142,23 +142,23 @@
         finally (return ch)))
 
 (defmethod stream-read-char-no-hang ((stream fundamental-character-input-stream))
-  (read-char stream nil :eof))
+  (stream-read-char stream))
 
 (defmethod stream-read-line ((stream fundamental-character-input-stream))
   (loop
      with result = (make-array 120 :element-type 'character :adjustable t :fill-pointer 0)
-     for c = (read-char stream nil :eof)
+     for c = (stream-read-char stream)
      until (or (eql c :eof)
                (eql c #\Newline))
      do (vector-push-extend c result)
      finally (return (values result (eql c :eof)))))
 
 (defmethod stream-listen ((stream fundamental-character-input-stream))
-  (let ((ch (read-char-no-hang stream nil :eof)))
+  (let ((ch (stream-read-char-no-hang stream)))
     (cond ((or (eql ch :eof)
                (not ch))
            nil)
-          (t (unread-char ch stream)
+          (t (stream-unread-char stream ch)
              t))))
 
 (defmethod stream-advance-to-column
@@ -166,28 +166,31 @@
   (let ((current (line-column stream)))
     (when current
       (dotimes (i (- column current))
-        (write-char stream #\Newline))
+        (stream-write-char stream #\Newline))
       t)))
 
 (defmethod stream-fresh-line ((stream fundamental-character-output-stream))
-  (cond ((start-line-p stream)
+  (cond ((stream-start-line-p stream)
          nil)
         (t
-         (terpri stream)
+         (stream-terpri stream)
          t)))
 
 (defmethod stream-start-line-p ((stream fundamental-character-output-stream))
-  (let ((column (line-column stream)))
+  (let ((column (stream-line-column stream)))
     (and column (zerop column))))
 
 (defmethod stream-terpri ((stream fundamental-character-output-stream))
-  (write-char #\Newline stream))
+  (stream-write-char stream #\Newline))
 
 (defmethod stream-write-string
     ((stream fundamental-character-output-stream) string &optional (start 0) end)
   (loop for index from start below (or end (length string))
         do (stream-write-char stream (char string index)))
   string)
+
+(defmethod stream-file-length (stream)
+  (error 'type-error :datum stream :expected-type 'file-stream))
 
 (defmethod stream-file-position ((stream fundamental-stream) &optional position-spec)
   (declare (ignore position-spec))
