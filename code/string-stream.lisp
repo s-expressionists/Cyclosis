@@ -11,6 +11,7 @@
   ())
 
 (defmethod initialize-instance :after ((instance string-output-stream) &rest initargs)
+  (declare (ignore initargs))
   (unless (array-has-fill-pointer-p (string-stream-string instance))
     (error "~S must be a string with a fill-pointer" string)))
 

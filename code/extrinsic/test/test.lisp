@@ -41,7 +41,7 @@
                                           "OPEN"
                                           "OUTPUT-STREAM-P"
                                           "PEEK-CHAR"
-                                          #+(or)"READ-BYTE"
+                                          "READ-BYTE"
                                           "READ-CHAR"
                                           "READ-CHAR-NO-HANG"
                                           "READ-LINE"
@@ -57,11 +57,11 @@
                                           "WITH-INPUT-FROM-STRING"
                                           "WITH-OPEN"
                                           "WITH-OUTPUT-TO-STRING"
-                                          #|"WRITE-BYTE"
+                                          "WRITE-BYTE"
                                           "WRITE-CHAR"
                                           "WRITE-LINE"
                                           "WRITE-SEQUENCE"
-                                          "WRITE-STRING"|#)
+                                          "WRITE-STRING")
                                  :expected-failures (asdf:component-pathname (asdf:find-component system
                                                                                                   '("code" "expected-failures.sexp")))
                                  :exit exit

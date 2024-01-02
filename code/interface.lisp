@@ -286,7 +286,8 @@
 
        (defun ,(ensure-symbol '#:read-byte intrinsic-pkg)
            (stream &optional (eof-error-p t) eof-value)
-         (let ((b (stream-read-byte (coerce-input-stream ,client-var stream))))
+         (check-input-stream stream)
+         (let ((b (stream-read-byte stream)))
            (check-type b (or integer (eql :eof)))
            (if (eql b :eof)
                (if eof-error-p
@@ -296,7 +297,8 @@
 
        (defun ,(ensure-symbol '#:write-byte intrinsic-pkg)
            (byte stream)
-         (stream-write-byte (coerce-output-stream ,client-var stream) byte))
+         (check-output-stream stream)
+         (stream-write-byte stream byte))
 
        (defun ,(ensure-symbol '#:read-sequence intrinsic-pkg)
            (sequence stream &key (start 0) end)
