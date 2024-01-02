@@ -87,17 +87,21 @@
           (t
            0))))
 
-#+(or)(defmethod stream-file-position ((stream string-output-stream) &optional position)
-  (length (string-output-stream-string stream)))
+(defmethod stream-file-position ((stream string-output-stream) &optional position)
+  (if position
+      nil
+      (length (string-output-stream-string stream))))
 
 (defun expand-with-output-to-string
     (var string-form element-type body)
-  (expand-with-open-stream var
-                           (if string-form
+  (if string-form
+      (expand-with-open-stream var
                                `(make-string-output-stream :string ,string-form :element-type ,element-type)
-                               `(make-string-output-stream :element-type ,element-type))
-                           `(,@body
-                             (get-output-stream-string ,var))))
+                               body)
+      (expand-with-open-stream var
+                               `(make-string-output-stream :element-type ,element-type)
+                               `(,@body
+                                 (get-output-stream-string ,var)))))
 
 ;;; String input stream and with-input-from-string.
 
@@ -171,7 +175,7 @@
           (alexandria:parse-body body)
         (expand-with-open-stream var
                                  `(make-string-input-stream ,string ,start ,end)
-                                 `(@declares
+                                 `(,@declares
                                    (multiple-value-prog1
                                        (progn ,@body-forms)
                                      (setf ,index (string-input-stream-position ,var))))))

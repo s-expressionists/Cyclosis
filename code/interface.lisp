@@ -149,6 +149,22 @@
 
 (defgeneric state-value (client aspect))
 
+(defun check-stream (object)
+  (unless (streamp object)
+    (error 'type-error :datum object :expected-type '(satisfies streamp))))
+
+(defun check-input-stream (object)
+  (unless (input-stream-p object)
+    (error 'type-error :datum object :expected-type '(satisfies input-stream-p))))
+
+(defun check-output-stream (object)
+  (unless (output-stream-p object)
+    (error 'type-error :datum object :expected-type '(satisfies output-stream-p))))
+
+(defun check-open-stream (object)
+  (unless (open-stream-p object)
+    (error 'stream-error :stream object)))
+
 ;;; Coerce
 
 (defun coerce-input-stream (client designator)
@@ -156,10 +172,8 @@
          (setf designator (state-value client 'cl:*standard-input*)))
         ((eq designator t)
          (setf designator (state-value client 'cl:*terminal-io*))))
-  (unless (input-stream-p designator)
-    (error 'type-error :datum designator :expected-type 'stream))
-  (unless (open-stream-p designator)
-    (error 'stream-error :stream designator))
+  (check-input-stream designator)
+  (check-open-stream designator)
   designator)
 
 (defun coerce-output-stream (client designator)
@@ -167,10 +181,8 @@
          (setf designator (state-value client 'cl:*standard-output*)))
         ((eq designator t)
          (setf designator (state-value client 'cl:*terminal-io*))))
-  (unless (output-stream-p designator)
-    (error 'type-error :datum designator :expected-type 'stream))
-  (unless (open-stream-p designator)
-    (error 'stream-error :stream designator))
+  (check-output-stream designator)
+  (check-open-stream designator)
   designator)
 
 (defgeneric make-file-stream
@@ -288,11 +300,15 @@
 
        (defun ,(ensure-symbol '#:read-sequence intrinsic-pkg)
            (sequence stream &key (start 0) end)
+         (check-type start unsigned-byte)
+         (check-type end (or null unsigned-byte))
          (stream-read-sequence (coerce-input-stream ,client-var stream) sequence
                                start end))
 
        (defun ,(ensure-symbol '#:write-sequence intrinsic-pkg)
            (sequence stream &key (start 0) end)
+         (check-type start unsigned-byte)
+         (check-type end (or null unsigned-byte))
          (stream-write-sequence (coerce-output-stream ,client-var stream) sequence
                                 start end)
          sequence)

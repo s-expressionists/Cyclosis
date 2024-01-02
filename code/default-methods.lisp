@@ -234,3 +234,6 @@
   (defmethod truename (stream)
     (funcall func stream)))
 
+(defmethod stream-element-type (stream)
+  (check-stream stream)
+  t)

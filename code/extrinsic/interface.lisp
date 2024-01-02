@@ -211,8 +211,18 @@
 (defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*query-io*)))
   *query-io*)
 
-(defmethod cyclosis:whitespace-char-p ((client extrinsic-client) char)
-  (and (member char '(#\tab #\newline #\linefeed #\page #\return #\space))
-       t))
+(defmethod cyclosis:whitespace-char-p ((client extrinsic-client) ch)
+  #+ccl (ccl::whitespacep ch)
+  #+clasp
+    (eq (core:syntax-type char) :whitespace)
+  #+cmucl (lisp::whitespacep ch)
+  #+(and ecl (not bytecode))
+    (ffi::c-inline (ch) (t) :bool
+                   "ecl_readtable_get(ecl_current_readtable(), ECL_CHAR_CODE(#0), NULL) == cat_whitespace"
+                            :one-liner t)
+  #+sbcl (sb-impl::whitespace[2]p ch *readtable*)
+  #-(or ccl clasp cmucl (and ecl (not bytecode)) sbcl)
+    (and (member char '(#\tab #\newline #\linefeed #\page #\return #\space))
+         t))
 
 (cyclosis:define-interface *client*)
