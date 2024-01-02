@@ -2,5 +2,6 @@
 
 (defpackage #:cyclosis-extrinsic/test
   (:use #:common-lisp)
-  (:shadow #:format)
+  (:shadow #:format
+           #:read)
   (:export #:test))
