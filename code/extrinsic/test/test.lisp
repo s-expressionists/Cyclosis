@@ -62,8 +62,8 @@
                                           "WRITE-LINE"
                                           "WRITE-SEQUENCE"
                                           "WRITE-STRING"|#)
-                                 ;:expected-failures (asdf:component-pathname (asdf:find-component system
-                                        ;                                                                 '("code" "expected-failures.sexp")))
+                                 :expected-failures (asdf:component-pathname (asdf:find-component system
+                                                                                                  '("code" "expected-failures.sexp")))
                                  :exit exit
                                  :extrinsic-symbols '(format
                                                       cyclosis-extrinsic:*debug-io*

@@ -22,4 +22,5 @@
                 :pathname "code/extrinsic/test/"
                 :serial t
                 :components ((:file "packages")
-                             (:file "test")))))
+                             (:file "test")
+                             (:static-file "expected-failures.sexp")))))

@@ -240,6 +240,8 @@
              (setf if-exists (if (eql (pathname-version path) :newest)
                                  :new-version
                                  :error)))
+           (when (eq direction :probe)
+             (setf if-exists nil))
            (unless if-does-not-exist-p
              (cond ((or (eql direction :input)
                         (eql if-exists :overwrite)
@@ -417,7 +419,7 @@
             &aux (query-io (state-value ,client-var 'cl:*query-io*)))
          (declare (dynamic-extent arguments))
          (when control
-           (fresh-line query-io)
+           (stream-fresh-line query-io)
            (apply 'format query-io control arguments)
            (stream-write-char query-io #\Space))
          (stream-write-string query-io "(Y or N) ")
