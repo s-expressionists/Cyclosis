@@ -226,20 +226,11 @@
 (defmethod stream-clear-input :before ((stream unread-char-mixin))
   (setf (slot-value stream 'unread-char) nil))
 
-;;; Coerce
+(let ((func #'cl:pathname))
+  (defmethod pathname (stream)
+    (funcall func stream)))
 
-(defmethod cyclosis:coerce-input-stream (client designator)
-  (declare (ignore client))
-  (unless (input-stream-p designator)
-    (error 'type-error :datum designator :expected-type 'stream))
-  (unless (open-stream-p designator)
-    (error 'stream-error :stream designator))
-  designator)
+(let ((func #'cl:truename))
+  (defmethod truename (stream)
+    (funcall func stream)))
 
-(defmethod cyclosis:coerce-output-stream (client designator)
-  (declare (ignore client))
-  (unless (output-stream-p designator)
-    (error 'type-error :datum designator :expected-type 'stream))
-  (unless (open-stream-p designator)
-    (error 'stream-error :stream designator))
-  designator)

@@ -42,7 +42,7 @@
 (defmethod stream-read-byte ((stream echo-stream))
   (let ((c (stream-read-byte (echo-stream-input-stream stream))))
     (when (integerp c)
-      (stream-write-byte c (echo-stream-output-stream stream)))
+      (stream-write-byte (echo-stream-output-stream stream) c))
     c))
 
 (defmethod stream-read-char ((stream echo-stream))

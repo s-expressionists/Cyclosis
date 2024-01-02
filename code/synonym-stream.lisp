@@ -73,10 +73,10 @@
   (stream-read-byte (follow-synonym-stream stream)))
 
 (defmethod stream-write-byte ((stream synonym-stream) integer)
-  (stream-write-byte integer (follow-synonym-stream stream)))
+  (stream-write-byte (follow-synonym-stream stream) integer))
 
 (defmethod stream-peek-char ((stream synonym-stream))
-  (stream-peek-char nil (follow-synonym-stream stream)))
+  (stream-peek-char (follow-synonym-stream stream)))
 
 (defmethod stream-read-char-no-hang ((stream synonym-stream))
   (stream-read-char-no-hang (follow-synonym-stream stream)))

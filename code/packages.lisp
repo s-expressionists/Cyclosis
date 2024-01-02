@@ -23,6 +23,7 @@
            #:make-two-way-stream
            #:open-stream-p
            #:output-stream-p
+           #:pathname
            #:stream
            #:stream-element-type
            #:stream-external-format
@@ -30,6 +31,7 @@
            #:string-stream
            #:synonym-stream
            #:synonym-stream-symbol
+           #:truename
            #:two-way-stream
            #:two-way-stream-input-stream
            #:two-way-stream-output-stream)
@@ -71,6 +73,8 @@
            #:make-two-way-stream
            #:open-stream-p
            #:output-stream-p
+           #:pathname
+           #:state-value
            #:stream
            #:stream-advance-to-column
            #:stream-clear-input
@@ -102,6 +106,8 @@
            #:string-stream
            #:synonym-stream
            #:synonym-stream-symbol
+           #:truename
            #:two-way-stream
            #:two-way-stream-input-stream
-           #:two-way-stream-output-stream))
+           #:two-way-stream-output-stream
+           #:whitespace-char-p))

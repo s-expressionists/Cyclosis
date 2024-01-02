@@ -104,26 +104,55 @@
 (defclass string-input-stream (fundamental-character-input-stream
                                unread-char-mixin
                                string-stream)
-  ((string :initarg :string)
+  ((string :initarg :string
+           :reader string-input-stream-string)
+   (position :initarg :position
+             :accessor string-input-stream-position)
    (start :initarg :start
-          :reader string-input-stream-position)
-   (end :initarg :end)))
+          :reader string-input-stream-start)
+   (end :initarg :end
+        :reader string-input-stream-end)))
 
 (defun make-string-input-stream (string &optional (start 0) end)
   (check-type string string)
   (make-instance 'string-input-stream
                  :string string
                  :start start
+                 :position start
                  :end (or end (length string))))
 
 (defmethod stream-read-char ((stream string-input-stream))
-  (if (< (slot-value stream 'start) (slot-value stream 'end))
-      (prog1 (char (slot-value stream 'string)
-                   (slot-value stream 'start))
-        (incf (slot-value stream 'start)))
-      :eof))
+  (with-accessors ((position string-input-stream-position)
+                   (end string-input-stream-end)
+                   (string string-input-stream-string))
+      stream
+    (if (< position end)
+        (prog1
+            (char string position)
+          (incf position))
+        :eof)))
 
-(defmethod stream-read-sequence
+(defmethod stream-peek-char ((stream string-input-stream))
+  (with-accessors ((position string-input-stream-position)
+                   (end string-input-stream-end)
+                   (string string-input-stream-string))
+      stream
+    (if (< position end)
+        (char string position)
+        :eof)))
+
+(defmethod stream-unread-char ((stream string-input-stream) char)
+  (with-accessors ((position string-input-stream-position)
+                   (start string-input-stream-start)
+                   (string string-input-stream-string))
+      stream
+    (unless (< start position)
+      (error 'stream-error :stream stream))
+    (decf position)
+    (unless (char= char (char string position))
+      (error 'stream-error :stream stream))))
+
+#+(or)(defmethod stream-read-sequence
     ((stream string-input-stream) seq &optional (start 0) end)
   (let* ((available (- (slot-value stream 'end) (slot-value stream 'start)))
          (requested (- (or end (length seq)) start))

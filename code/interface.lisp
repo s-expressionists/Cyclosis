@@ -130,6 +130,10 @@
 
 (defgeneric stream-line-length (stream))
 
+(defgeneric pathname (stream))
+
+(defgeneric truename (stream))
+
 ;;; Generalization for byte streams and other extensions
 
 ;;; TWB: These came from Mezzano. They aren't implemented like this in
@@ -141,9 +145,33 @@
 
 #+(or)(defgeneric stream-peek-char-skip-whitespace (stream))
 
-(defgeneric coerce-input-stream (client designator))
+(defgeneric whitespace-char-p (client char))
 
-(defgeneric coerce-output-stream (client designator))
+(defgeneric state-value (client aspect))
+
+;;; Coerce
+
+(defun coerce-input-stream (client designator)
+  (cond ((null designator)
+         (setf designator (state-value client 'cl:*standard-input*)))
+        ((eq designator t)
+         (setf designator (state-value client 'cl:*terminal-io*))))
+  (unless (input-stream-p designator)
+    (error 'type-error :datum designator :expected-type 'stream))
+  (unless (open-stream-p designator)
+    (error 'stream-error :stream designator))
+  designator)
+
+(defun coerce-output-stream (client designator)
+  (cond ((null designator)
+         (setf designator (state-value client 'cl:*standard-output*)))
+        ((eq designator t)
+         (setf designator (state-value client 'cl:*terminal-io*))))
+  (unless (output-stream-p designator)
+    (error 'type-error :datum designator :expected-type 'stream))
+  (unless (open-stream-p designator)
+    (error 'stream-error :stream designator))
+  designator)
 
 (defgeneric make-file-stream
     (client path direction if-exists if-does-not-exist element-type external-format))
@@ -157,36 +185,38 @@
   (let* ((intrinsic-pkg (if intrinsic (find-package '#:common-lisp) *package*))
          (open-sym (ensure-symbol '#:open intrinsic-pkg))
          (symbols '(cyclosis:broadcast-stream
-                           cyclosis:broadcast-stream-streams
-                           cyclosis:close
-                           cyclosis:concatenated-stream
-                           cyclosis:concatenated-stream-streams
-                           cyclosis:echo-stream
-                           cyclosis:echo-stream-input-stream
-                           cyclosis:echo-stream-output-stream
-                           cyclosis:file-stream
-                           cyclosis:get-output-stream-string
-                           cyclosis:input-stream-p
-                           cyclosis:interactive-stream-p
-                           cyclosis:make-broadcast-stream
-                           cyclosis:make-concatenated-stream
-                           cyclosis:make-echo-stream
-                           cyclosis:make-string-input-stream
-                           cyclosis:make-string-output-stream
-                           cyclosis:make-synonym-stream
-                           cyclosis:make-two-way-stream
-                           cyclosis:open-stream-p
-                           cyclosis:output-stream-p
-                           cyclosis:stream
-                           cyclosis:stream-element-type
-                           cyclosis:stream-external-format
-                           cyclosis:streamp
-                           cyclosis:string-stream
-                           cyclosis:synonym-stream
-                           cyclosis:synonym-stream-symbol
-                           cyclosis:two-way-stream
-                           cyclosis:two-way-stream-input-stream
-                           cyclosis:two-way-stream-output-stream)))
+                    cyclosis:broadcast-stream-streams
+                    cyclosis:close
+                    cyclosis:concatenated-stream
+                    cyclosis:concatenated-stream-streams
+                    cyclosis:echo-stream
+                    cyclosis:echo-stream-input-stream
+                    cyclosis:echo-stream-output-stream
+                    cyclosis:file-stream
+                    cyclosis:get-output-stream-string
+                    cyclosis:input-stream-p
+                    cyclosis:interactive-stream-p
+                    cyclosis:make-broadcast-stream
+                    cyclosis:make-concatenated-stream
+                    cyclosis:make-echo-stream
+                    cyclosis:make-string-input-stream
+                    cyclosis:make-string-output-stream
+                    cyclosis:make-synonym-stream
+                    cyclosis:make-two-way-stream
+                    cyclosis:open-stream-p
+                    cyclosis:output-stream-p
+                    cyclosis:pathname
+                    cyclosis:stream
+                    cyclosis:stream-element-type
+                    cyclosis:stream-external-format
+                    cyclosis:streamp
+                    cyclosis:string-stream
+                    cyclosis:synonym-stream
+                    cyclosis:synonym-stream-symbol
+                    cyclosis:truename
+                    cyclosis:two-way-stream
+                    cyclosis:two-way-stream-input-stream
+                    cyclosis:two-way-stream-output-stream)))
     `(progn
        (shadowing-import ',symbols ,intrinsic-pkg)
 
@@ -203,9 +233,9 @@
          (check-type if-exists (member :error :new-version :rename :rename-and-delete
                                        :overwrite :append :supersede nil))
          (check-type if-does-not-exist (member :error :create nil))
-         (let ((path (translate-logical-pathname (merge-pathnames filespec))))
+         (let ((path (translate-logical-pathname (merge-pathnames (pathname filespec)))))
            (when (wild-pathname-p path)
-             (error "Wild pathname specified."))
+             (error 'file-error :pathname path))
            (unless if-exists-p
              (setf if-exists (if (eql (pathname-version path) :newest)
                                  :new-version
@@ -334,23 +364,22 @@
        (defun ,(ensure-symbol '#:peek-char intrinsic-pkg)
            (&optional peek-type stream (eof-error-p t) eof-value recursive-p)
          (check-type peek-type (or (eql t) (eql nil) character))
-         (let ((s (coerce-input-stream ,client-var stream)))
-           (if (characterp peek-type)
-               (loop for ch = (read-char s eof-error-p nil recursive-p)
-                     until (or (not ch)
-                               (char= ch peek-type))
-                     finally (return (cond (ch
-                                            (unread-char ch s)
-                                            ch)
-                                           (t
-                                            eof-value))))
-               (let ((ch (if peek-type
-                             (stream-peek-char-skip-whitespace s)
-                             (stream-peek-char s))))
-                 (cond ((not (eql ch :eof)) ch)
-                       (eof-error-p
-                        (error 'end-of-file :stream s))
-                       (t eof-value))))))
+         (prog ((s (coerce-input-stream ,client-var stream))
+               ch)
+          repeat
+            (setf ch (stream-peek-char s))
+            (when (eq ch :eof)
+              (when eof-error-p
+                (error 'end-of-file :stream s))
+              (return eof-value))
+            (when (and peek-type
+                       (or (and (eq peek-type t)
+                                (whitespace-char-p ,client-var ch))
+                           (and (not (eq peek-type t))
+                                (char/= peek-type ch))))
+              (stream-read-char s)
+              (go repeat))
+            (return ch)))
 
        (defun ,(ensure-symbol '#:clear-input intrinsic-pkg)
            (&optional stream)
@@ -384,40 +413,42 @@
          (stream-listen (coerce-input-stream ,client-var input-stream)))
 
        (defun ,(ensure-symbol '#:y-or-n-p intrinsic-pkg)
-           (&optional control &rest arguments)
+           (&optional control &rest arguments
+            &aux (query-io (state-value ,client-var 'cl:*query-io*)))
          (declare (dynamic-extent arguments))
          (when control
-           (fresh-line *query-io*)
-           (apply 'format *query-io* control arguments)
-           (write-char #\Space *query-io*))
-         (format *query-io* "(Y or N) ")
+           (fresh-line query-io)
+           (apply 'format query-io control arguments)
+           (stream-write-char query-io #\Space))
+         (stream-write-string query-io "(Y or N) ")
          (loop
-           (clear-input *query-io*)
-           (let ((c (read-char *query-io*)))
+           (stream-clear-input query-io)
+           (let ((c (stream-read-char query-io)))
              (when (char-equal c #\Y)
                (return t))
              (when (char-equal c #\N)
                (return nil)))
-           (fresh-line *query-io*)
-           (format *query-io* "Please respond with \"y\" or \"n\". ")))
+           (stream-fresh-line query-io)
+           (stream-write-string query-io "Please respond with \"y\" or \"n\". ")))
 
        (defun ,(ensure-symbol '#:yes-or-no-p intrinsic-pkg)
-           (&optional control &rest arguments)
+           (&optional control &rest arguments
+            &aux (query-io (state-value ,client-var 'cl:*query-io*)))
          (declare (dynamic-extent arguments))
          (when control
-           (fresh-line *query-io*)
-           (apply 'format *query-io* control arguments)
-           (write-char #\Space *query-io*))
+           (stream-fresh-line query-io)
+           (apply 'format query-io control arguments)
+           (stream-write-char query-io #\Space))
          (format *query-io* "(Yes or No) ")
          (loop
-           (clear-input *query-io*)
-           (let ((line (read-line *query-io*)))
+           (stream-clear-input query-io)
+           (let ((line (stream-read-line query-io)))
              (when (string-equal line "yes")
                (return t))
              (when (string-equal line "no")
                (return nil)))
-           (fresh-line *query-io*)
-           (format *query-io* "Please respond with \"yes\" or \"no\". ")))
+           (stream-fresh-line query-io)
+           (stream-write-string query-io "Please respond with \"yes\" or \"no\". ")))
 
        (defun ,(ensure-symbol '#:write-string intrinsic-pkg)
            (string &optional stream &key (start 0) end)

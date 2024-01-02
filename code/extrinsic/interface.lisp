@@ -72,8 +72,11 @@
 (defmethod cyclosis:stream-element-type ((stream extrinsic-file-stream))
   (cl:stream-element-type (target stream)))
 
+(defmethod cyclosis:stream-external-format ((stream extrinsic-file-stream))
+  (cl:stream-external-format (target stream)))
+
 (defmethod cyclosis:stream-read-byte ((stream extrinsic-file-stream))
-  (cl:read-byte (target stream) nil nil))
+  (cl:read-byte (target stream) nil :eof))
 
 (defmethod cyclosis:stream-write-byte ((stream extrinsic-file-stream) integer)
   (cl:write-byte integer (target stream)))
@@ -98,15 +101,24 @@
     ((stream extrinsic-file-stream) sequence &optional (start 0) end)
   (cl:read-sequence sequence (target stream) :start start :end end))
 
+(defmethod cyclosis:pathname ((stream extrinsic-file-stream))
+  (cl:pathname (target stream)))
+
+(defmethod cyclosis:truename ((stream extrinsic-file-stream))
+  (cl:truename (target stream)))
+
 (defmethod cyclosis:make-file-stream
     ((client extrinsic-client) path direction
      if-exists if-does-not-exist element-type external-format)
-  (make-instance 'extrinsic-file-stream
-                 :target (cl:open path :direction direction
-                                       :if-exists if-exists
-                                       :if-does-not-exist if-does-not-exist
-                                       :element-type element-type
-                                       :external-format external-format)))
+  (let ((target (cl:open path :direction direction
+                              :if-exists if-exists
+                              :if-does-not-exist if-does-not-exist
+                              :element-type element-type
+                              :external-format external-format)))
+    (if target
+        (make-instance 'extrinsic-file-stream
+                       :target target)
+        nil)))
 
 (defun replicate-stream (stream direction)
   (etypecase stream
@@ -122,10 +134,10 @@
         (replicate-stream (cl:two-way-stream-output-stream stream)
                           :output))
        (:io
-        (make-two-way-stream (replicate-stream (cl:two-way-stream-input-stream stream)
-                                               :input)
-                             (replicate-stream (cl:two-way-stream-output-stream stream)
-                                               :output)))))
+        (cyclosis:make-two-way-stream (replicate-stream (cl:two-way-stream-input-stream stream)
+                                                        :input)
+                                      (replicate-stream (cl:two-way-stream-output-stream stream)
+                                                        :output)))))
     (cl:echo-stream
      (ecase direction
        (:input
@@ -135,21 +147,21 @@
         (replicate-stream (cl:echo-stream-output-stream stream)
                           :output))
        (:io
-        (make-two-way-stre (replicate-stream (cl:echo-stream-input-stream stream)
-                                             :input)
-                           (replicate-stream (cl:echo-stream-output-stream stream)
-                                             :output)))))
+        (cyclosis:make-two-way-stream (replicate-stream (cl:echo-stream-input-stream stream)
+                                                        :input)
+                                      (replicate-stream (cl:echo-stream-output-stream stream)
+                                                        :output)))))
     (cl:concatenated-stream
      (ecase direction
        (:input
-        (apply #'make-concatenated-stream
+        (apply #'cyclosis:make-concatenated-stream
                (mapcar (lambda (stream)
                          (replicate-stream stream :input))
                        (cl:concatenated-stream-streams stream))))))
     (cl:broadcast-stream
      (ecase direction
        (:output
-        (apply #'make-broadcast-stream
+        (apply #'cyclosis:make-broadcast-stream
                (mapcar (lambda (stream)
                          (replicate-stream stream :output))
                        (cl:broadcast-stream-streams stream))))))
@@ -178,21 +190,29 @@
 
 (defparameter *query-io* (replicate-stream cl:*query-io* :io))
 
-(defmethod cyclosis:coerce-input-stream
-    ((client extrinsic-client) (designator null))
+(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*standard-input*)))
   *standard-input*)
 
-(defmethod cyclosis:coerce-input-stream
-    ((client extrinsic-client) (designator (eql t)))
-  *terminal-io*)
-
-(defmethod cyclosis:coerce-output-stream
-    ((client extrinsic-client) (designator null))
+(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*standard-output*)))
   *standard-output*)
 
-(defmethod cyclosis:coerce-output-stream
-    ((client extrinsic-client) (designator (eql t)))
+(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*error-output*)))
+  *error-output*)
+
+(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*trace-output*)))
+  *trace-output*)
+
+(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*terminal-io*)))
   *terminal-io*)
 
-(cyclosis:define-interface *client*)
+(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*debug-io*)))
+  *debug-io*)
 
+(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*query-io*)))
+  *query-io*)
+
+(defmethod cyclosis:whitespace-char-p ((client extrinsic-client) char)
+  (and (member char '(#\tab #\newline #\linefeed #\page #\return #\space))
+       t))
+
+(cyclosis:define-interface *client*)
