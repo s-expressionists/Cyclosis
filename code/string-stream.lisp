@@ -1,68 +1,58 @@
 (cl:in-package #:cyclosis)
 
-(defclass string-stream (stream) ())
+(defclass string-stream (stream)
+  ((string :initarg :string
+           :reader string-stream-string)))
 
 ;;; String output stream and with-output-to-string.
 
 (defclass string-output-stream (fundamental-character-output-stream
                                 string-stream)
-  ((element-type :initarg :element-type :reader string-output-stream-element-type)
-   (string :initarg :string :accessor string-output-stream-string))
-  (:default-initargs :string nil))
+  ())
 
-(defun make-string-output-stream
-    (&key (element-type 'character) (string nil stringp))
-  (when stringp
-    (when (not (and (stringp string)
-                    (array-has-fill-pointer-p string)))
-      (error "~S must be a string with a fill-pointer" string)))
+(defmethod initialize-instance :after ((instance string-output-stream) &rest initargs)
+  (unless (array-has-fill-pointer-p (string-stream-string instance))
+    (error "~S must be a string with a fill-pointer" string)))
+
+(defun make-string-output-stream (&key (element-type 'character))
   (when (not (subtypep element-type 'character))
     (error "Element-type ~S must be a subtype of CHARACTER" element-type))
-  (make-instance 'string-output-stream :element-type element-type :string string))
+  (make-instance 'string-output-stream
+                 :string (make-array 8 :element-type element-type
+                                       :fill-pointer 0 :adjustable t)))
 
 (defun get-output-stream-string (string-output-stream)
   (check-type string-output-stream string-output-stream)
-  (prog1 (or (string-output-stream-string string-output-stream)
-             (make-array 0 :element-type (string-output-stream-element-type string-output-stream)))
-    (setf (string-output-stream-string string-output-stream) nil)))
+  (with-accessors ((string string-stream-string))
+      string-output-stream
+    (prog1
+        (copy-seq string)
+      (setf (fill-pointer string) 0))))
 
 (defmethod stream-write-char ((stream string-output-stream) character)
-  (unless (string-output-stream-string stream)
-    (setf (string-output-stream-string stream)
-          (make-array 8
-                      :element-type (string-output-stream-element-type stream)
-                      :adjustable t
-                      :fill-pointer 0)))
-  (vector-push-extend character (string-output-stream-string stream)))
+  (vector-push-extend character (string-stream-string stream)))
 
 (defmethod stream-write-sequence
     ((stream string-output-stream) seq &optional (start 0) end)
-  (setf end (or end (length seq)))
-  (when (not (typep seq 'string))
-    ;; Make sure the sequence only contains characters.
-    (loop
-       for i from start below end
-       for elt = (elt seq i)
-       when (not (characterp elt))
-       do (error 'simple-type-error
-                 :expected-type 'character
-                 :datum elt
-                 :format-control "Non-character in sequence ~S"
-                 :format-arguments (list seq))))
-  (let ((n-chars (- end start)))
-    (unless (string-output-stream-string stream)
-      (setf (string-output-stream-string stream)
-            (make-array (max n-chars 8)
-                        :element-type (string-output-stream-element-type stream)
-                        :adjustable t
-                        :fill-pointer 0)))
-    (let* ((output (string-output-stream-string stream))
-           (current-length (length output))
-           (new-length (+ (length output) n-chars)))
-      (when (< (array-dimension output 0) new-length)
-        (adjust-array output new-length))
-      (setf (fill-pointer output) new-length)
-      (replace output seq
+  (with-accessors ((string string-stream-string))
+      stream
+    (setf end (or end (length seq)))
+    (when (not (typep seq 'string))
+      ;; Make sure the sequence only contains characters.
+      (loop for i from start below end
+            for elt = (elt seq i)
+            when (not (characterp elt))
+              do (error 'simple-type-error
+                        :expected-type 'character
+                        :datum elt
+                        :format-control "Non-character in sequence ~S"
+                        :format-arguments (list seq))))
+    (let ((current-length (length string))
+          (new-length (+ (length string) (- end start))))
+      (when (< (array-dimension string 0) new-length)
+        (adjust-array string new-length))
+      (setf (fill-pointer string) new-length)
+      (replace string seq
                :start1 current-length
                :start2 start
                :end2 end)
@@ -71,12 +61,12 @@
 (defmethod stream-start-line-p ((stream string-output-stream))
   ;; If the string is empty or last character is a newline, then it's
   ;; at the start.
-  (let ((string (string-output-stream-string stream)))
+  (let ((string (string-stream-string stream)))
     (or (zerop (length string))
         (eql (char string (1- (length string))) #\Newline))))
 
 (defmethod stream-line-column ((stream string-output-stream))
-  (let ((string (string-output-stream-string stream)))
+  (let ((string (string-stream-string stream)))
     (cond (string
            (let ((column 0))
              (loop
@@ -90,13 +80,19 @@
 (defmethod stream-file-position ((stream string-output-stream) &optional position)
   (if position
       nil
-      (length (string-output-stream-string stream))))
+      (length (string-stream-string stream))))
+
+(defmethod stream-element-type ((stream string-output-stream))
+  (array-element-type (string-stream-string stream)))
 
 (defun expand-with-output-to-string
     (var string-form element-type body)
   (if string-form
       (expand-with-open-stream var
-                               `(make-string-output-stream :string ,string-form :element-type ,element-type)
+                               `(progn ; element-type is ignored, but it might have side effects
+                                  ,element-type
+                                  (make-instance 'string-output-stream
+                                                 :string (progn ,string-form)))
                                body)
       (expand-with-open-stream var
                                `(make-string-output-stream :element-type ,element-type)
@@ -108,9 +104,7 @@
 (defclass string-input-stream (fundamental-character-input-stream
                                unread-char-mixin
                                string-stream)
-  ((string :initarg :string
-           :reader string-input-stream-string)
-   (position :initarg :position
+  ((position :initarg :position
              :accessor string-input-stream-position)
    (start :initarg :start
           :reader string-input-stream-start)
@@ -128,7 +122,7 @@
 (defmethod stream-read-char ((stream string-input-stream))
   (with-accessors ((position string-input-stream-position)
                    (end string-input-stream-end)
-                   (string string-input-stream-string))
+                   (string string-stream-string))
       stream
     (if (< position end)
         (prog1
@@ -139,7 +133,7 @@
 (defmethod stream-peek-char ((stream string-input-stream))
   (with-accessors ((position string-input-stream-position)
                    (end string-input-stream-end)
-                   (string string-input-stream-string))
+                   (string string-stream-string))
       stream
     (if (< position end)
         (char string position)
@@ -148,7 +142,7 @@
 (defmethod stream-unread-char ((stream string-input-stream) char)
   (with-accessors ((position string-input-stream-position)
                    (start string-input-stream-start)
-                   (string string-input-stream-string))
+                   (string string-stream-string))
       stream
     (unless (< start position)
       (error 'stream-error :stream stream))
