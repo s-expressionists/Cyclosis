@@ -211,6 +211,21 @@
 (defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*query-io*)))
   *query-io*)
 
+(defun extrinsic-format (destination control-string &rest args)
+  (when (eq destination t)
+    (setf destination *standard-output*))
+  (cond ((or (null destination)
+             (stringp destination))
+         (apply 'format destination control-string args))
+        (t
+         ;; TODO: Need to preserve column and line length
+         (cyclosis:stream-write-string destination
+                                       (apply 'format nil control-string args))
+         nil)))
+
+(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:format)))
+  #'extrinsic-format)
+
 (defmethod cyclosis:whitespace-char-p ((client extrinsic-client) ch)
   #+ccl (ccl::whitespacep ch)
   #+clasp

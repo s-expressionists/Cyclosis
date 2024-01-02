@@ -438,9 +438,11 @@
          (declare (dynamic-extent arguments))
          (when control
            (stream-fresh-line query-io)
-           (apply 'format query-io control arguments)
+           (apply (state-value ,client-var 'format)
+                  query-io control arguments)
            (stream-write-char query-io #\Space))
          (stream-write-string query-io "(Y or N) ")
+         (stream-finish-output query-io)
          (loop
            (stream-clear-input query-io)
            (let ((c (stream-read-char query-io)))
@@ -457,9 +459,11 @@
          (declare (dynamic-extent arguments))
          (when control
            (stream-fresh-line query-io)
-           (apply 'format query-io control arguments)
+           (apply (state-value ,client-var 'format)
+                  query-io control arguments)
            (stream-write-char query-io #\Space))
          (format *query-io* "(Yes or No) ")
+         (stream-finish-output query-io)
          (loop
            (stream-clear-input query-io)
            (let ((line (stream-read-line query-io)))
@@ -468,7 +472,8 @@
              (when (string-equal line "no")
                (return nil)))
            (stream-fresh-line query-io)
-           (stream-write-string query-io "Please respond with \"yes\" or \"no\". ")))
+           (stream-write-string query-io "Please respond with \"yes\" or \"no\". ")
+           (stream-finish-output query-io)))
 
        (defun ,(ensure-symbol '#:write-string intrinsic-pkg)
            (string &optional stream &key (start 0) end)
