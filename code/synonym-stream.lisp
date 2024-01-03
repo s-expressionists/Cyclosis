@@ -3,7 +3,8 @@
 ;;; Synonym stream.
 
 (defclass synonym-stream (fundamental-stream)
-  ((%symbol :initarg :symbol :reader synonym-stream-symbol)))
+  ((%symbol :initarg :symbol
+            :reader synonym-stream-symbol)))
 
 (defun make-synonym-stream (symbol)
   (check-type symbol symbol)

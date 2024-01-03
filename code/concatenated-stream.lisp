@@ -9,10 +9,7 @@
             :accessor %streams)))
 
 (defun make-concatenated-stream (&rest input-streams)
-  (dolist (s input-streams)
-    (when (not (and (streamp s)
-                    (input-stream-p s)))
-      (error 'type-error :datum s :expected-type 'input-stream)))
+  (mapc #'check-input-stream input-streams)
   (make-instance 'concatenated-stream :streams input-streams))
 
 (defmethod stream-element-type ((stream concatenated-stream))

@@ -208,39 +208,39 @@
 (defmacro define-interface (client-var &key intrinsic)
   (let* ((intrinsic-pkg (if intrinsic (find-package '#:common-lisp) *package*))
          (open-sym (ensure-symbol '#:open intrinsic-pkg))
-         (symbols '(cyclosis:broadcast-stream
-                    cyclosis:broadcast-stream-streams
-                    cyclosis:close
-                    cyclosis:concatenated-stream
-                    cyclosis:concatenated-stream-streams
-                    cyclosis:echo-stream
-                    cyclosis:echo-stream-input-stream
-                    cyclosis:echo-stream-output-stream
-                    cyclosis:file-stream
-                    cyclosis:get-output-stream-string
-                    cyclosis:input-stream-p
-                    cyclosis:interactive-stream-p
-                    cyclosis:make-broadcast-stream
-                    cyclosis:make-concatenated-stream
-                    cyclosis:make-echo-stream
-                    cyclosis:make-string-input-stream
-                    cyclosis:make-string-output-stream
-                    cyclosis:make-synonym-stream
-                    cyclosis:make-two-way-stream
-                    cyclosis:open-stream-p
-                    cyclosis:output-stream-p
-                    cyclosis:pathname
-                    cyclosis:stream
-                    cyclosis:stream-element-type
-                    cyclosis:stream-external-format
-                    cyclosis:streamp
-                    cyclosis:string-stream
-                    cyclosis:synonym-stream
-                    cyclosis:synonym-stream-symbol
-                    cyclosis:truename
-                    cyclosis:two-way-stream
-                    cyclosis:two-way-stream-input-stream
-                    cyclosis:two-way-stream-output-stream)))
+         (symbols '(broadcast-stream
+                    broadcast-stream-streams
+                    close
+                    concatenated-stream
+                    concatenated-stream-streams
+                    echo-stream
+                    echo-stream-input-stream
+                    echo-stream-output-stream
+                    file-stream
+                    get-output-stream-string
+                    input-stream-p
+                    interactive-stream-p
+                    make-broadcast-stream
+                    make-concatenated-stream
+                    make-echo-stream
+                    make-string-input-stream
+                    make-string-output-stream
+                    make-synonym-stream
+                    make-two-way-stream
+                    open-stream-p
+                    output-stream-p
+                    pathname
+                    stream
+                    stream-element-type
+                    stream-external-format
+                    streamp
+                    string-stream
+                    synonym-stream
+                    synonym-stream-symbol
+                    truename
+                    two-way-stream
+                    two-way-stream-input-stream
+                    two-way-stream-output-stream)))
     `(progn
        (shadowing-import ',symbols ,intrinsic-pkg)
 

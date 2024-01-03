@@ -6,11 +6,7 @@
   ((%streams :initarg :streams :reader broadcast-stream-streams)))
 
 (defun make-broadcast-stream (&rest streams)
-  (dolist (stream streams)
-    (when (not (output-stream-p stream))
-      (error 'type-error
-             :expected-type '(satisfies output-stream-p)
-             :datum stream)))
+  (mapc #'check-output-stream streams)
   (make-instance 'broadcast-stream :streams streams))
 
 (defmacro broadcast-stream-op ((substream broadcast-stream default) &body body)

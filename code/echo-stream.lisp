@@ -11,12 +11,8 @@
                   :reader echo-stream-output-stream)))
 
 (defun make-echo-stream (input-stream output-stream)
-  (when (not (and (streamp input-stream)
-                  (input-stream-p input-stream)))
-    (error 'type-error :datum input-stream :expected-type 'input-stream))
-  (when (not (and (streamp output-stream)
-                  (output-stream-p output-stream)))
-    (error 'type-error :datum output-stream :expected-type 'output-stream))
+  (check-input-stream input-stream)
+  (check-output-stream output-stream)
   (make-instance 'echo-stream
                  :input-stream input-stream
                  :output-stream output-stream))

@@ -54,34 +54,38 @@
   (setf (stream-open-p stream) nil)
   t)
 
-(defmethod open-stream-p ((stream t))
-  (error 'type-error :expected-type 'stream :datum stream))
+(defmethod open-stream-p (stream)
+  (check-stream stream)
+  nil)
 
 (defmethod open-stream-p ((stream fundamental-stream))
   (stream-open-p stream))
 
-(defmethod input-stream-p ((stream t))
-  (error 'type-error :expected-type 'stream :datum stream))
+(defmethod input-stream-p (stream)
+  (check-stream stream)
+  nil)
 
-(defmethod input-stream-p ((stream fundamental-stream))
+(defmethod input-stream-p ((stream stream))
   nil)
 
 (defmethod input-stream-p ((stream fundamental-input-stream))
   t)
 
-(defmethod output-stream-p ((stream t))
-  (error 'type-error :expected-type 'stream :datum stream))
+(defmethod output-stream-p (stream)
+  (check-stream stream)
+  nil)
 
-(defmethod output-stream-p ((stream fundamental-stream))
+(defmethod output-stream-p ((stream stream))
   nil)
 
 (defmethod output-stream-p ((stream fundamental-output-stream))
   t)
 
-(defmethod interactive-stream-p ((stream t))
-  (error 'type-error :expected-type 'stream :datum stream))
+(defmethod interactive-stream-p (stream)
+  (check-stream stream)
+  nil)
 
-(defmethod interactive-stream-p ((stream fundamental-stream))
+(defmethod interactive-stream-p ((stream stream))
   nil)
 
 (defmethod stream-element-type ((stream fundamental-character-stream))
