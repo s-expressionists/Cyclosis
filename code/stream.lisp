@@ -120,32 +120,42 @@
 
 (defclass character-input-mixin ()
   ((previous-char :accessor previous-char
-                  :initform nil))
+                  :initform nil)
+   (input-cursor :accessor input-cursor
+                 :initform (make-cursor)))
   (:documentation "Mixin to add simple UNREAD-CHAR support to a stream."))
 
 (defmethod stream-read-char :around ((stream character-input-mixin))
-  (with-accessors ((previous-char previous-char))
+  (with-accessors ((previous-char previous-char)
+                   (input-cursor input-cursor))
       stream
-    (if previous-char
-        (prog1
-            (previous-char stream)
-          (setf previous-char nil))
-        (call-next-method))))
+    (let (ch)
+      (if previous-char
+          (setf ch previous-char
+                previous-char nil)
+          (setf ch (call-next-method)))
+      (update-cursor input-cursor ch)
+      ch)))
 
 (defmethod stream-read-char-no-hang :around ((stream character-input-mixin))
-  (with-accessors ((previous-char previous-char))
+  (with-accessors ((previous-char previous-char)
+                   (input-cursor input-cursor))
       stream
-    (if previous-char
-        (prog1
-            previous-char
-          (setf previous-char nil))
-        (call-next-method))))
+    (let (ch)
+      (if previous-char
+          (setf ch previous-char
+                previous-char nil)
+          (setf ch (call-next-method)))
+      (update-cursor input-cursor ch)
+      ch)))
 
 (defmethod stream-unread-char ((stream character-input-mixin) character)
-  (with-accessors ((previous-char previous-char))
+  (with-accessors ((previous-char previous-char)
+                   (input-cursor input-cursor))
       stream
     (when previous-char
       (error "Multiple UNREAD-CHAR"))
+    (pop input-cursor)
     (setf previous-char character)))
 
 (defmethod stream-listen :around ((stream character-input-mixin))
@@ -154,6 +164,12 @@
 
 (defmethod stream-clear-input :before ((stream character-input-mixin))
   (setf (previous-char stream) nil))
+
+(defmethod stream-input-column ((stream character-input-mixin))
+  (caar (input-cursor stream)))
+
+(defmethod stream-input-line ((stream character-input-mixin))
+  (cdar (input-cursor stream)))
 
 ;;; character-output-mixin
 

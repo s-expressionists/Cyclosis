@@ -138,6 +138,10 @@
 
 (defgeneric (setf stream-line-length) (new-value stream))
 
+(defgeneric stream-input-column (stream))
+
+(defgeneric stream-input-line (stream))
+
 (defgeneric pathname (stream))
 
 (defgeneric truename (stream))
