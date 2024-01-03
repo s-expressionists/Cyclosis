@@ -6,8 +6,9 @@
 
 ;;; String output stream and with-output-to-string.
 
-(defclass string-output-stream (fundamental-character-output-stream
-                                string-stream)
+(defclass string-output-stream
+    (character-output-mixin string-stream
+     fundamental-character-output-stream)
   ())
 
 (defmethod initialize-instance :after ((instance string-output-stream) &rest initargs)
@@ -28,6 +29,7 @@
       string-output-stream
     (prog1
         (copy-seq string)
+      (reset-cursor (output-cursor string-output-stream))
       (setf (fill-pointer string) 0))))
 
 (defmethod stream-write-char ((stream string-output-stream) character)
@@ -48,6 +50,9 @@
                         :datum elt
                         :format-control "Non-character in sequence ~S"
                         :format-arguments (list seq))))
+    (map nil (lambda (ch)
+               (update-output-cursor stream ch))
+         seq)
     (let ((current-length (length string))
           (new-length (+ (length string) (- end start))))
       (when (< (array-dimension string 0) new-length)
@@ -58,25 +63,6 @@
                :start2 start
                :end2 end)
       seq)))
-
-(defmethod stream-start-line-p ((stream string-output-stream))
-  ;; If the string is empty or last character is a newline, then it's
-  ;; at the start.
-  (let ((string (string-stream-string stream)))
-    (or (zerop (length string))
-        (eql (char string (1- (length string))) #\Newline))))
-
-(defmethod stream-line-column ((stream string-output-stream))
-  (let ((string (string-stream-string stream)))
-    (cond (string
-           (let ((column 0))
-             (loop
-                (when (or (eql (length string) column)
-                          (eql (char string (- (length string) column 1)) #\Newline))
-                  (return column))
-                (incf column))))
-          (t
-           0))))
 
 (defmethod stream-file-position ((stream string-output-stream) &optional position)
   (if position
@@ -102,8 +88,8 @@
 
 ;;; String input stream and with-input-from-string.
 
-(defclass string-input-stream (fundamental-character-input-stream
-                               unread-char-mixin
+(defclass string-input-stream (character-input-mixin
+                               fundamental-character-input-stream
                                string-stream)
   ((position :initarg :position
              :accessor string-input-stream-position)
@@ -139,17 +125,6 @@
     (if (< position end)
         (char string position)
         :eof)))
-
-(defmethod stream-unread-char ((stream string-input-stream) char)
-  (with-accessors ((position string-input-stream-position)
-                   (start string-input-stream-start)
-                   (string string-stream-string))
-      stream
-    (unless (< start position)
-      (error 'stream-error :stream stream))
-    (decf position)
-    (unless (char= char (char string position))
-      (error 'stream-error :stream stream))))
 
 #+(or)(defmethod stream-read-sequence
     ((stream string-input-stream) seq &optional (start 0) end)

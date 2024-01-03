@@ -2,9 +2,8 @@
 
 ;;; Concatenated stream.
 
-(defclass concatenated-stream (fundamental-character-input-stream ; For the default stream-read-line method.
-                               fundamental-input-stream
-                               unread-char-mixin)
+(defclass concatenated-stream (character-input-mixin
+                               fundamental-character-input-stream)
   ((streams :initarg :streams
             :reader concatenated-stream-streams
             :accessor %streams)))
@@ -46,7 +45,7 @@
        (when (not (eql ch :eof))
          (return ch))
        ;; Reached end of this stream. Pop streams.
-       (pop (slot-value stream 'streams)))))
+       (pop (%streams stream)))))
 
 (defmethod stream-read-char ((stream concatenated-stream))
   (loop
@@ -56,7 +55,7 @@
        (when (not (eql ch :eof))
          (return ch))
        ;; Reached end of this stream. Pop streams.
-       (pop (slot-value stream 'streams)))))
+       (pop (%streams stream)))))
 
 (defmethod stream-read-char-no-hang ((stream concatenated-stream))
   (loop
@@ -66,7 +65,7 @@
        (when (not (eql ch :eof))
          (return ch))
        ;; Reached end of this stream. Pop streams.
-       (pop (slot-value stream 'streams)))))
+       (pop (%streams stream)))))
 
 (defmethod stream-listen ((stream concatenated-stream))
   ;; Built on top of READ-CHAR-NO-HANG because LISTEN cannot distinguish
@@ -78,7 +77,7 @@
        (case ch
          (:eof
           ;; Reached end of this stream. Pop streams.
-          (pop (slot-value stream 'streams)))
+          (pop (%streams stream)))
          (nil
           (return nil))
          (t
@@ -91,11 +90,12 @@
       nil))
 
 (defmethod stream-peek-char ((stream concatenated-stream))
-  (loop
-     (when (endp (concatenated-stream-streams stream))
-       (return :eof))
-     (let ((ch (stream-peek-char (first (concatenated-stream-streams stream)))))
-       (when (not (eql ch :eof))
-         (return ch))
-       ;; Reached end of this stream. Pop streams.
-       (pop (slot-value stream 'streams)))))
+  (with-accessors ((streams %streams))
+      stream
+    (loop (when (endp streams)
+            (return :eof))
+          (let ((ch (stream-peek-char (first streams))))
+            (when (not (eql ch :eof))
+              (return ch))
+            ;; Reached end of this stream. Pop streams.
+            (pop streams)))))

@@ -4,7 +4,7 @@
 
 (defclass two-way-stream (fundamental-output-stream
                           fundamental-input-stream
-                          unread-char-mixin)
+                          character-input-mixin)
   ((input-stream :initarg :input-stream
                  :reader two-way-stream-input-stream)
    (output-stream :initarg :output-stream

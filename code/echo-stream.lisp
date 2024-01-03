@@ -4,7 +4,7 @@
 
 (defclass echo-stream (fundamental-output-stream
                        fundamental-input-stream
-                       unread-char-mixin)
+                       character-input-mixin)
   ((input-stream :initarg :input-stream
                  :reader echo-stream-input-stream)
    (output-stream :initarg :output-stream

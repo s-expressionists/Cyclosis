@@ -196,36 +196,6 @@
   (declare (ignore position-spec))
   nil)
 
-;;; Unread-char mixin.
-
-(defclass unread-char-mixin ()
-  ((unread-char :initform nil))
-  (:documentation "Mixin to add simple UNREAD-CHAR support to a stream."))
-
-(defmethod stream-read-char :around ((stream unread-char-mixin))
-  (if (slot-value stream 'unread-char)
-      (prog1 (slot-value stream 'unread-char)
-        (setf (slot-value stream 'unread-char) nil))
-      (call-next-method)))
-
-(defmethod stream-read-char-no-hang :around ((stream unread-char-mixin))
-  (if (slot-value stream 'unread-char)
-      (prog1 (slot-value stream 'unread-char)
-        (setf (slot-value stream 'unread-char) nil))
-      (call-next-method)))
-
-(defmethod stream-unread-char ((stream unread-char-mixin) character)
-  (when (slot-value stream 'unread-char)
-    (error "Multiple UNREAD-CHAR"))
-  (setf (slot-value stream 'unread-char) character))
-
-(defmethod stream-listen :around ((stream unread-char-mixin))
-  (or (slot-value stream 'unread-char)
-      (call-next-method)))
-
-(defmethod stream-clear-input :before ((stream unread-char-mixin))
-  (setf (slot-value stream 'unread-char) nil))
-
 (let ((func #'cl:pathname))
   (defmethod pathname (stream)
     (funcall func stream)))

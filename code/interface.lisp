@@ -68,6 +68,12 @@
 
 (defgeneric stream-line-column (stream))
 
+(defgeneric (setf stream-line-column) (new-value stream))
+
+(defgeneric stream-line-number (stream))
+
+(defgeneric (setf stream-line-number) (new-value stream))
+
 (defgeneric stream-start-line-p (stream))
 
 (defgeneric stream-write-string (stream string &optional start end))
@@ -129,6 +135,8 @@
 (defgeneric stream-write-sequence (stream seq &optional start end))
 
 (defgeneric stream-line-length (stream))
+
+(defgeneric (setf stream-line-length) (new-value stream))
 
 (defgeneric pathname (stream))
 

@@ -88,6 +88,8 @@
            #:stream-force-output
            #:stream-fresh-line
            #:stream-line-column
+           #:stream-line-length
+           #:stream-line-number
            #:stream-listen
            #:stream-peek-char
            #:stream-read-byte

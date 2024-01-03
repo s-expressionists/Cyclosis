@@ -91,3 +91,92 @@
                :start2 start
                :end2 end)
       seq)))
+
+(defun make-cursor ()
+  (let ((cursor (list (cons 0 1) (cons 0 1))))
+    (setf (cddr cursor) cursor)
+    cursor))
+
+(defmacro update-cursor (cursor ch)
+  (let ((ch-var (gensym)))
+    `(let ((,ch-var ,ch))
+       (cond ((not (characterp ,ch-var)))
+             ((char= ,ch-var #\newline)
+              (setf (caadr ,cursor) 0
+                    (cdadr ,cursor) (1+ (cdar ,cursor)))
+              (pop ,cursor))
+             (t
+              (setf (caadr ,cursor) (1+ (caar ,cursor))
+                    (cdadr ,cursor) (cdar ,cursor))
+              (pop ,cursor))))))
+
+(defun reset-cursor (cursor)
+  (setf (caar cursor) 0
+        (cdar cursor) 1
+        (caadr cursor) 0
+        (cdadr cursor) 1))
+
+;;; character-input-mixin
+
+(defclass character-input-mixin ()
+  ((previous-char :accessor previous-char
+                  :initform nil))
+  (:documentation "Mixin to add simple UNREAD-CHAR support to a stream."))
+
+(defmethod stream-read-char :around ((stream character-input-mixin))
+  (with-accessors ((previous-char previous-char))
+      stream
+    (if previous-char
+        (prog1
+            (previous-char stream)
+          (setf previous-char nil))
+        (call-next-method))))
+
+(defmethod stream-read-char-no-hang :around ((stream character-input-mixin))
+  (with-accessors ((previous-char previous-char))
+      stream
+    (if previous-char
+        (prog1
+            previous-char
+          (setf previous-char nil))
+        (call-next-method))))
+
+(defmethod stream-unread-char ((stream character-input-mixin) character)
+  (with-accessors ((previous-char previous-char))
+      stream
+    (when previous-char
+      (error "Multiple UNREAD-CHAR"))
+    (setf previous-char character)))
+
+(defmethod stream-listen :around ((stream character-input-mixin))
+  (or (and (previous-char stream) t)
+      (call-next-method)))
+
+(defmethod stream-clear-input :before ((stream character-input-mixin))
+  (setf (previous-char stream) nil))
+
+;;; character-output-mixin
+
+(defclass character-output-mixin ()
+  ((output-cursor :accessor output-cursor
+                  :initform (make-cursor))
+   (line-length :accessor stream-line-length
+                :initform nil)))
+
+(defun update-output-cursor (stream ch)
+  (update-cursor (output-cursor stream) ch))
+
+(defmethod stream-line-column ((stream character-output-mixin))
+  (caar (output-cursor stream)))
+
+(defmethod (setf stream-line-column) (new-value (stream character-output-mixin))
+  (setf (caar (output-cursor stream)) new-value))
+
+(defmethod stream-line-number ((stream character-output-mixin))
+  (cdar (output-cursor stream)))
+
+(defmethod (setf stream-line-number) (new-value (stream character-output-mixin))
+  (setf (cdar (output-cursor stream)) new-value))
+
+(defmethod stream-write-char :after ((stream character-output-mixin) ch)
+  (update-cursor (output-cursor stream) ch))
