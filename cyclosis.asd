@@ -13,4 +13,5 @@
                              (:file "echo-stream")
                              (:file "string-stream")
                              (:file "synonym-stream")
-                             (:file "two-way-stream")))))
+                             (:file "two-way-stream")
+                             (:file "transcoders")))))

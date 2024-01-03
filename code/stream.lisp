@@ -196,3 +196,72 @@
 
 (defmethod stream-write-char :after ((stream character-output-mixin) ch)
   (update-cursor (output-cursor stream) ch))
+
+;;; octet-mixin
+
+(defclass octet-mixin ()
+  ((transcoder :initarg :transcoder
+               :accessor octet-transcoder)
+   (element-type :initarg :element-type
+                 :accessor stream-element-type
+                 :accessor octet-element-type)
+   (external-format :initarg :external-format
+                    :accessor stream-external-format
+                    :accessor octet-external-format)
+   (octet-stack :initform nil
+                :accessor octet-stack)))
+
+(defun update-transcoder (instance)
+  (with-accessors ((transcoder octet-transcoder)
+                   (element-type octet-element-type)
+                   (external-format octet-external-format))
+      instance
+    (loop for coder in *octet-transcoder*
+          do (multiple-value-bind (%transcoder %element-type %external-format)
+                 (funcall coder element-type external-format)
+               (when %transcoder
+                 (setf transcoder %transcoder
+                       element-type %element-type
+                       external-format %external-format)
+                 (return-from update-transcoder))))
+    (error "Unable to file transcoder for element-type ~s and external-format ~s"
+           element-type external-format)))
+
+(defmethod initialize-instance :after ((instance octet-mixin) &rest initargs)
+  (declare (ignore initargs))
+  (update-transcoder instance))
+
+(defmethod (setf stream-element-type) :after (new-value (stream octet-mixin))
+  (declare (ignore new-value))
+  (update-transcoder stream))
+
+(defmethod (setf stream-external-format) :after (new-value (stream octet-mixin))
+  (declare (ignore new-value))
+  (update-transcoder stream))
+
+(defmethod stream-read-char ((stream octet-mixin))
+  (check-character-stream stream)
+  (read-element (octet-transcoder stream) stream))
+
+(defmethod stream-write-char ((stream octet-mixin) char)
+  (check-character-stream stream)
+  (write-element (octet-transcoder stream) stream char))
+
+(defmethod stream-read-byte ((stream octet-mixin))
+  (check-binary-stream stream)
+  (read-element (octet-transcoder stream) stream))
+
+(defmethod stream-write-byte ((stream octet-mixin) integer)
+  (check-binary-stream stream)
+  (write-element (octet-transcoder stream) stream integer))
+
+(defmethod stream-read-octet :around ((stream octet-mixin))
+  (with-accessors ((octet-stack octet-stack))
+      stream
+    (if octet-stack
+        (pop octet-stack)
+        (call-next-method))))
+
+(defmethod stream-unread-octet ((stream octet-mixin) octet)
+  (push octet (octet-stack stream))
+  nil)

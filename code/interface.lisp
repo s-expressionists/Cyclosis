@@ -161,6 +161,20 @@
 
 (defgeneric state-value (client aspect))
 
+;;; Octet Interface
+
+(defgeneric stream-read-octet (stream))
+
+(defgeneric stream-write-octet (stream octet))
+
+(defgeneric stream-unread-octet (stream octet))
+
+(defgeneric read-element (transcoder stream))
+
+(defgeneric write-element (transcoder stream element))
+
+(defparameter *octet-transcoders* nil)
+
 (defun check-stream (object)
   (unless (streamp object)
     (error 'type-error :datum object :expected-type '(satisfies streamp))))
@@ -175,6 +189,14 @@
 
 (defun check-open-stream (object)
   (unless (open-stream-p object)
+    (error 'stream-error :stream object)))
+
+(defun check-character-stream (object)
+  (unless (subtypep (stream-element-type object) 'character)
+    (error 'stream-error :stream object)))
+
+(defun check-binary-stream (object)
+  (unless (subtypep (stream-element-type object) 'interger)
     (error 'stream-error :stream object)))
 
 ;;; Coerce
