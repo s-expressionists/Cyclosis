@@ -6,7 +6,7 @@
   ;; Note: Unlike STREAM-LISTEN, STREAM-LISTEN-BYTE may return :EOF
   ;; to indicate that the stream is at EOF. This should be equivalent to NIL.
   ;; It is used in the default implementation of STREAM-READ-BYTE-NO-HANG.
-  (let ((result (stream-listen-byte (coerce-input-stream ,client-var input-stream))))
+  (let ((result (stream-listen-byte (coerce-input-stream client-var input-stream))))
     (cond ((or (eql result :eof)
                (not result))
            nil)
@@ -15,7 +15,7 @@
 ;; TWB: This came from Mezzano. This isn't implemented like this in
 ;; other implementations, so I am removing them for now.
 #+(or)(defun read-byte-no-hang (stream &optional (eof-error-p t) eof-value)
-  (let* ((s (coerce-input-stream ,client-var stream))
+  (let* ((s (coerce-input-stream client-var stream))
          (b (stream-read-byte-no-hang s)))
     (check-type b (or integer (eql :eof) null))
     (cond ((eql b :eof)

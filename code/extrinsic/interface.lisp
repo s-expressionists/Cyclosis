@@ -229,7 +229,7 @@
 (defmethod cyclosis:whitespace-char-p ((client extrinsic-client) ch)
   #+ccl (ccl::whitespacep ch)
   #+clasp
-    (eq (core:syntax-type char) :whitespace)
+    (eq (core:syntax-type *readtable* ch) :whitespace)
   #+cmucl (lisp::whitespacep ch)
   #+(and ecl (not bytecode))
     (ffi::c-inline (ch) (t) :bool
