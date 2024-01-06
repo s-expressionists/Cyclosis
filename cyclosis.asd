@@ -14,4 +14,5 @@
                              (:file "string-stream")
                              (:file "synonym-stream")
                              (:file "two-way-stream")
-                             (:file "transcoders")))))
+                             (:file "transcoders")
+                             (:file "posix-file-stream")))))

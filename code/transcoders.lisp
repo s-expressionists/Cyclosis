@@ -1,19 +1,23 @@
 (cl:in-package #:cyclosis)
 
-(define-condition transcode-error (simple-error)
+(define-condition transcode-error (stream-error)
   ())
+
+(define-condition illegal-sequence (transcode-error)
+  ()
+  (:report (lambda (condition stream)
+             (format stream "Illegal sequence while decoding from ~s"
+                     (stream-error-stream condition)))))
+
+(define-condition unexpected-eof (transcode-error)
+  ()
+  (:report (lambda (condition stream)
+             (format stream "Unexpected EOF while decoding from ~s"
+                     (stream-error-stream condition)))))
 
 ;;; utf-8 transcoder
 
 (defclass utf-8-transcoder () ())
-
-(defun utf-8-eof ()
-  (error 'transcode-error
-         :format-control "EOF before end of UTF-8 sequence."))
-
-(defun utf-8-illegal-sequence ()
-  (error 'transcode-error
-         :format-control "Illegal UTF-8 sequence."))
 
 (defmethod read-element ((transcoder utf-8-transcoder) stream)
   (let (octet1 octet2 octet3 octet4)
@@ -22,42 +26,27 @@
           ((< octet1 #b10000000)
            (coerce (code-char octet1) (stream-element-type stream)))
           ((eq (setf octet2 (stream-read-octet input-stream)) :eof)
-           (stream-unread-octet octet1)
-           (utf-8-eof))
+           (error 'unexpected-eof :stream stream))
           ((not (<= #b10000000 octet2 #b10111111))
-           (stream-unread-octet octet2)
-           (stream-unread-octet octet1)
-           (utf-8-illegal-sequence))
+           (error 'illegal-sequence :stream stream))
           ((< octet1 #b11100000)
            (coerce (code-char (+ (ash (- octet1 #b11000000) -2)
                                  (- octet2 #b10000000)))
                    (stream-element-type stream)))
           ((eq (setf octet3 (stream-read-octet input-stream)) :eof)
-           (stream-unread-octet octet2)
-           (stream-unread-octet octet1)
-           (utf-8-eof))
+           (error 'unexpected-eof :stream stream))
           ((not (<= #b10000000 octet3 #b10111111))
-           (stream-unread-octet octet3)
-           (stream-unread-octet octet2)
-           (stream-unread-octet octet1)
-           (utf-8-illegal-sequence))
+           (error 'illegal-sequence :stream stream))
           ((< octet1 #b11110000)
            (coerce (code-char (+ (ash (- octet1 #b11100000) -4)
                                  (ash (- octet2 #b10000000) -2)
                                  (- octet3 #b10000000)))
                    (stream-element-type stream)))
           ((eq (setf octet4 (stream-read-octet input-stream)) :eof)
-           (stream-unread-octet octet3)
-           (stream-unread-octet octet2)
-           (stream-unread-octet octet1)
-           (utf-8-eof))
+           (error 'unexpected-eof :stream stream))
           ((not (and (<= #b10000000 octet4 #b10111111)
                      (< octet1 #b11111000)))
-           (stream-unread-octet octet4)
-           (stream-unread-octet octet3)
-           (stream-unread-octet octet2)
-           (stream-unread-octet octet1)
-           (utf-8-illegal-sequence))
+           (error 'illegal-sequence :stream stream))
           (t
            (coerce (code-char (+ (ash (- octet1 #b11110000) -6)
                                  (ash (- octet2 #b10000000) -4)
@@ -93,7 +82,7 @@
 
 (pushnew #'make-utf-8-transcoder *octet-transcoders*)
 
-;;; unsigned-byte-8 transcoder
+;;; unsigned-byte-8-transcoder
 
 (defclass unsigned-byte-8-transcoder () ())
 
@@ -104,7 +93,7 @@
   (stream-write-octet stream element))
 
 (defun make-unsigned-byte-8-transcoder (element-type external-format)
-  (when (subtypep element-type 'unsigned-byte-8)
+  (when (subtypep element-type '(unsigned-byte 8))
     (values (make-instance 'unsigned-byte-8-transcoder) element-type :default)))
 
 (pushnew #'make-unsigned-byte-8-transcoder *octet-transcoders*)

@@ -207,16 +207,14 @@
                  :accessor octet-element-type)
    (external-format :initarg :external-format
                     :accessor stream-external-format
-                    :accessor octet-external-format)
-   (octet-stack :initform nil
-                :accessor octet-stack)))
+                    :accessor octet-external-format)))
 
 (defun update-transcoder (instance)
   (with-accessors ((transcoder octet-transcoder)
                    (element-type octet-element-type)
                    (external-format octet-external-format))
       instance
-    (loop for coder in *octet-transcoder*
+    (loop for coder in *octet-transcoders*
           do (multiple-value-bind (%transcoder %element-type %external-format)
                  (funcall coder element-type external-format)
                (when %transcoder
@@ -239,6 +237,20 @@
   (declare (ignore new-value))
   (update-transcoder stream))
 
+(defmethod stream-read-octet ((stream octet-mixin))
+  (let* ((octets (make-array 1 :element-type '(unsigned-byte 8)))
+         (count (stream-read-octets stream octets)))
+    (if (zerop count)
+        :eof
+        (aref octets 0))))
+
+(defmethod stream-write-octet ((stream octet-mixin) octet)
+  (let ((octets (make-array 1
+                            :element-type '(unsigned-byte 8)
+                            :initial-element octet)))
+    (stream-write-octets stream octets)
+    octet))
+
 (defmethod stream-read-char ((stream octet-mixin))
   (check-character-stream stream)
   (read-element (octet-transcoder stream) stream))
@@ -254,14 +266,3 @@
 (defmethod stream-write-byte ((stream octet-mixin) integer)
   (check-binary-stream stream)
   (write-element (octet-transcoder stream) stream integer))
-
-(defmethod stream-read-octet :around ((stream octet-mixin))
-  (with-accessors ((octet-stack octet-stack))
-      stream
-    (if octet-stack
-        (pop octet-stack)
-        (call-next-method))))
-
-(defmethod stream-unread-octet ((stream octet-mixin) octet)
-  (push octet (octet-stack stream))
-  nil)

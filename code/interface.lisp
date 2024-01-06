@@ -167,7 +167,9 @@
 
 (defgeneric stream-write-octet (stream octet))
 
-(defgeneric stream-unread-octet (stream octet))
+(defgeneric stream-read-octets (stream octets &optional start end))
+
+(defgeneric stream-write-octets (stream octets &optional start end))
 
 (defgeneric read-element (transcoder stream))
 
