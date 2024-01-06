@@ -89,7 +89,10 @@
 (defclass unsigned-byte-8-transcoder () ())
 
 (defmethod read-element ((transcoder unsigned-byte-8-transcoder) stream)
-  (coerce (stream-read-octet stream) (stream-element-type stream)))
+  (let ((byte (stream-read-octet stream)))
+    (if (eq byte :eof)
+        :eof
+        (coerce byte (stream-element-type stream)))))
 
 (defmethod write-element ((transcoder unsigned-byte-8-transcoder) stream element)
   (stream-write-octet stream element)

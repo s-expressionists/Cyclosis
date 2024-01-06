@@ -198,7 +198,7 @@
     (error 'stream-error :stream object)))
 
 (defun check-binary-stream (object)
-  (unless (subtypep (stream-element-type object) 'interger)
+  (unless (subtypep (stream-element-type object) 'integer)
     (error 'stream-error :stream object)))
 
 ;;; Coerce

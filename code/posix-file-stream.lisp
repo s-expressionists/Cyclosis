@@ -37,6 +37,12 @@
             :initarg :created
             :type boolean)))
 
+(defmethod truename ((stream posix-file-stream))
+  (let ((path (or (temp-pathname stream) (%pathname stream))))
+    (if path
+        (truename path)
+        nil)))
+
 (defmethod stream-read-octets ((stream posix-file-stream) octets &optional (start 0) end)
   #+sbcl (sb-posix:read (descriptor stream)
                         (sb-sys:sap+ (sb-sys:vector-sap octets)
@@ -67,7 +73,7 @@
              (setf (temp-pathname stream) nil)))
           ((created stream)
            (delete-file (pathname stream)))
-          (temp-pathname
+          ((temp-pathname stream)
            (delete-file (temp-pathname stream))
            (setf (temp-pathname stream) nil))))
   (call-next-method))
@@ -86,7 +92,10 @@
 (defmethod cyclosis:make-file-stream
     (client path direction if-exists if-does-not-exist element-type external-format)
   (declare (ignore client))
-  (let* ((temp-path nil)
+  (let* ((mode (logior sb-posix:s-irusr sb-posix:s-iwusr
+                       sb-posix:s-irgrp sb-posix:s-iwgrp
+                       sb-posix:s-iroth sb-posix:s-iwoth))
+(temp-path nil)
          (appending nil)
          (created nil)
          (descriptor nil)
@@ -103,7 +112,10 @@
              (:error
               (error 'file-error :pathname path))
              (:create
-              #+sbcl (setf descriptor (sb-posix:open name (logior sb-posix:o-creat sb-posix:o-rdonly))))
+              #+sbcl (setf descriptor
+                           (sb-posix:open name
+                                          (logior sb-posix:o-creat sb-posix:o-rdonly)
+                                          mode)))
              (otherwise
               (return-from make-file-stream nil)))))
       (otherwise
@@ -115,29 +127,35 @@
             (error 'file-error :pathname path))
            (:rename
             (rename-file path (find-unique-pathname path "bak"))
-            #+sbcl (setf descriptor (sb-posix:open name
-                                                   (logior sb-posix:o-creat
-                                                           (if (eq direction :io)
-                                                               sb-posix:o-rdwr
-                                                               sb-posix:o-wronly)))))
+            #+sbcl (setf descriptor
+                         (sb-posix:open name
+                                        (logior sb-posix:o-creat
+                                                (if (eq direction :io)
+                                                    sb-posix:o-rdwr
+                                                    sb-posix:o-wronly))
+                                        mode)))
            ((:rename-and-delete :new-version :supersede)
             (setf temp-path (find-unique-pathname path "tmp"))
-            #+sbcl (setf descriptor (sb-posix:open (namestring temp-path)
-                                                   (logior sb-posix:o-creat
-                                                           (if (eq direction :io)
-                                                               sb-posix:o-rdwr
-                                                               sb-posix:o-wronly)))))
+            #+sbcl (setf descriptor
+                         (sb-posix:open (namestring temp-path)
+                                        (logior sb-posix:o-creat
+                                                (if (eq direction :io)
+                                                    sb-posix:o-rdwr
+                                                    sb-posix:o-wronly))
+                                        mode)))
            (:append
             (setf appending t)
-            #+sbcl (setf descriptor (sb-posix:open name
-                                                   (if (eq direction :io)
-                                                       sb-posix:o-rdwr
-                                                       sb-posix:o-wronly))))
+            #+sbcl (setf descriptor
+                         (sb-posix:open name
+                                        (if (eq direction :io)
+                                            sb-posix:o-rdwr
+                                            sb-posix:o-wronly))))
            (:overwrite
-            #+sbcl (setf descriptor (sb-posix:open name
-                                                   (if (eq direction :io)
-                                                       sb-posix:o-rdwr
-                                                       sb-posix:o-wronly))))
+            #+sbcl (setf descriptor
+                         (sb-posix:open name
+                                        (if (eq direction :io)
+                                            sb-posix:o-rdwr
+                                            sb-posix:o-wronly))))
            (otherwise
             (return-from make-file-stream nil)))
          (case if-does-not-exist
@@ -145,12 +163,14 @@
             (error 'file-error :pathname path))
            (:create
             (setf created t)
-            #+sbcl (setf descriptor (sb-posix:open name
-                                                   (logior sb-posix:o-creat
-                                                           sb-posix:o-trunc
-                                                           (if (eq direction :io)
-                                                               sb-posix:o-rdwr
-                                                               sb-posix:o-wronly)))))
+            #+sbcl (setf descriptor
+                         (sb-posix:open name
+                                        (logior sb-posix:o-creat
+                                                sb-posix:o-trunc
+                                                (if (eq direction :io)
+                                                    sb-posix:o-rdwr
+                                                    sb-posix:o-wronly))
+                                        mode)))
            (otherwise
             (return-from make-file-stream nil))))))
     (when (minusp descriptor)
