@@ -74,6 +74,7 @@
            #:open-stream-p
            #:output-stream-p
            #:pathname
+           #:posix-file-stream
            #:state-value
            #:stream
            #:stream-advance-to-column

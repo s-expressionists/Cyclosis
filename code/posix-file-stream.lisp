@@ -4,7 +4,10 @@
                              octet-mixin
                              character-input-mixin
                              character-output-mixin
-                             fundamental-stream)
+                             fundamental-character-input-stream
+                             fundamental-character-output-stream
+                             fundamental-binary-input-stream
+                             fundamental-binary-output-stream)
   ((descriptor :accessor descriptor
                :initform -1
                :initarg :descriptor
@@ -13,9 +16,14 @@
                      :initform t
                      :initarg :close-descriptor
                      :type boolean)
-   (direction :reader direction
-              :initarg :direction
-              :type (member :input :output :io :probe))))
+   (input :reader input-stream-p
+          :initform nil
+          :initarg :input
+          :type boolean)
+   (output :reader output-stream-p
+           :initform nil
+           :initarg :output
+           :type boolean)))
 
 (defmethod stream-read-octets ((stream posix-file-stream) octets &optional (start 0) end)
   #+sbcl (sb-posix:read (descriptor stream)
@@ -40,11 +48,3 @@
     #+sicl (sicl-posix-low:close (descriptor stream)))
   (setf (descriptor stream) -1)
   (call-next-method))
-
-(defmethod input-stream-p ((stream posix-file-stream))
-  (and (member (direction stream) '(:input :io))
-       t))
-
-(defmethod output-stream-p ((stream posix-file-stream))
-  (and (member (direction stream) '(:output :io))
-       t))

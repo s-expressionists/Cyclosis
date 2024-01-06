@@ -206,6 +206,7 @@
                  :accessor stream-element-type
                  :accessor octet-element-type)
    (external-format :initarg :external-format
+                    :initform :default
                     :accessor stream-external-format
                     :accessor octet-external-format)))
 
