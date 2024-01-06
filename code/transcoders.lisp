@@ -73,11 +73,13 @@
            (stream-write-octet stream (logior #b11110000 (ash code -18)))
            (stream-write-octet stream (logior m1 (logand (ash code -12) m2)))
            (stream-write-octet stream (logior m1 (logand (ash code -6) m2)))
-           (stream-write-octet stream (logior m1 (logand code m2)))))))
+           (stream-write-octet stream (logior m1 (logand code m2))))))
+  element)
 
 (defun make-utf-8-transcoder (element-type external-format)
   (when (and (subtypep element-type 'character)
-             (eq external-format :utf-8))
+             (or (eq external-format :utf-8)
+                 (eq external-format :default)))
     (values (make-instance 'utf-8-transcoder) element-type '(:utf-8 :lf))))
 
 (pushnew #'make-utf-8-transcoder *octet-transcoders*)
@@ -90,7 +92,8 @@
   (coerce (stream-read-octet stream) (stream-element-type stream)))
 
 (defmethod write-element ((transcoder unsigned-byte-8-transcoder) stream element)
-  (stream-write-octet stream element))
+  (stream-write-octet stream element)
+  element)
 
 (defun make-unsigned-byte-8-transcoder (element-type external-format)
   (when (subtypep element-type '(unsigned-byte 8))

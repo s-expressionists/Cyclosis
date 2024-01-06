@@ -223,7 +223,7 @@
                        element-type %element-type
                        external-format %external-format)
                  (return-from update-transcoder))))
-    (error "Unable to file transcoder for element-type ~s and external-format ~s"
+    (error "Unable to find transcoder for element-type ~s and external-format ~s"
            element-type external-format)))
 
 (defmethod initialize-instance :after ((instance octet-mixin) &rest initargs)

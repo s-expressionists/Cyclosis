@@ -107,6 +107,7 @@
 (defmethod cyclosis:truename ((stream extrinsic-file-stream))
   (cl:truename (target stream)))
 
+#-sbcl
 (defmethod cyclosis:make-file-stream
     ((client extrinsic-client) path direction
      if-exists if-does-not-exist element-type external-format)
