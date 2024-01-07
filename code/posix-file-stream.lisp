@@ -67,7 +67,8 @@
     (:end
      (and (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-end) t))
     ((nil)
-     (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-cur))
+     (/ (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-cur)
+        (element-length (octet-transcoder stream))))
     (otherwise
      (and (sb-posix:lseek (descriptor stream) position sb-posix:seek-set) t))))
 
@@ -75,7 +76,8 @@
   #+sbcl
   (let ((current (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-cur)))
     (prog1
-        (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-end)
+        (/ (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-end)
+           (element-length (octet-transcoder stream)))
       (sb-posix:lseek (descriptor stream) current sb-posix:seek-set))))
 
 (defmethod close ((stream posix-file-stream) &key abort)
@@ -119,7 +121,9 @@
                                 :pathname path
                                 :input (and (member direction '(:input :io)) t)
                                 :output (and (member direction '(:output :io)) t)
-                                :element-type element-type
+                                :element-type (if (eq element-type :default)
+                                                  'character
+                                                  element-type)
                                 :external-format external-format))
          (flags 0)
          (appending nil)

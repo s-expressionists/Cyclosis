@@ -177,6 +177,11 @@
 
 (defgeneric encoded-length (transcoder elements))
 
+(defgeneric element-length (transcoder)
+  (:method (transcoder)
+    (declare (ignore))
+    1))
+
 (defparameter *default-external-format*
   '(character :utf-8 integer :be))
 
