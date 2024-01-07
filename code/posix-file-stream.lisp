@@ -32,7 +32,7 @@
                   :initform nil
                   :initarg :temp-pathname
                   :type (or null pathname))
-   (created :reader created
+   (created :accessor created
             :initform nil
             :initarg :created
             :type boolean)))
@@ -63,13 +63,13 @@
   #+sbcl
   (case position
     (:start
-     (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-set))
+     (and (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-set) t))
     (:end
-     (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-end))
+     (and (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-end) t))
     ((nil)
      (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-cur))
     (otherwise
-     (sb-posix:lseek (descriptor stream) position sb-posix:seek-set))))
+     (and (sb-posix:lseek (descriptor stream) position sb-posix:seek-set) t))))
 
 (defmethod stream-file-length ((stream posix-file-stream))
   #+sbcl
@@ -81,7 +81,8 @@
 (defmethod close ((stream posix-file-stream) &key abort)
   (declare (ignore abort))
   (when (stream-open-p stream)
-    (when (close-descriptorp stream)
+    (when (and (close-descriptorp stream)
+               (not (minusp (descriptor stream))))
       #+sbcl (sb-posix:close (descriptor stream))
       #+sicl (sicl-posix-low:close (descriptor stream)))
     (setf (descriptor stream) -1)
@@ -114,11 +115,14 @@
   (let* ((mode (logior sb-posix:s-irusr sb-posix:s-iwusr
                        sb-posix:s-irgrp sb-posix:s-iwgrp
                        sb-posix:s-iroth sb-posix:s-iwoth))
+         (stream (make-instance 'posix-file-stream
+                                :pathname path
+                                :input (and (member direction '(:input :io)) t)
+                                :output (and (member direction '(:output :io)) t)
+                                :element-type element-type
+                                :external-format external-format))
          (flags 0)
-         (temp-path nil)
          (appending nil)
-         (created nil)
-         (descriptor nil)
          (name (namestring path))
          (exists #+sbcl (handler-case
                             (zerop (sb-posix:access name sb-posix:f-ok))
@@ -149,8 +153,8 @@
               (rename-file path (find-unique-pathname path "bak"))
               (setf flags (logior flags sb-posix:o-creat)))
              ((:rename-and-delete :new-version :supersede)
-              (setf temp-path (find-unique-pathname path "tmp")
-                    name (namestring temp-path))
+              (setf (temp-pathname stream) (find-unique-pathname path "tmp")
+                    name (namestring (temp-pathname stream)))
               (setf flags (logior flags sb-posix:o-creat)))
              (:append
               (setf appending t))
@@ -161,29 +165,21 @@
              (:error
               (error 'file-does-not-exist :pathname path))
              (:create
-              (setf created t)
+              (setf (created stream) t)
               (ensure-directories-exist name)
               (setf flags (logior flags sb-posix:o-creat sb-posix:o-trunc)))
-           (otherwise
-            (return-from make-file-stream nil))))))
+             (otherwise
+              (return-from make-file-stream nil))))))
     #+sbcl
-    (setf descriptor
+    (setf (descriptor stream)
           (handler-case
               (sb-posix:open name flags mode)
             (sb-posix:syscall-error (condition)
+              (close stream :abort t)
               (error 'open-fail :pathname (pathname name)
                                 :message (sb-int:strerror (sb-posix:syscall-errno condition))))))
-    (let ((stream (make-instance 'posix-file-stream
-                                 :descriptor descriptor
-                                 :pathname path
-                                 :input (and (member direction '(:input :io)) t)
-                                 :output (and (member direction '(:output :io)) t)
-                                 :element-type element-type
-                                 :external-format external-format
-                                 :temp-pathname temp-path
-                                 :created created)))
-      (cond ((eq direction :probe)
-             (close stream))
-            (appending
-             (stream-file-position stream (stream-file-length stream))))
-      stream)))
+    (cond ((eq direction :probe)
+           (close stream))
+          (appending
+           (stream-file-position stream :end)))
+    stream))
