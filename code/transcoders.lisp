@@ -88,16 +88,6 @@
      &rest options)
   (apply #'make-instance 'utf-8-transcoder options))
 
-(defun make-utf-8-transcoder (element-type external-format
-                              &key replacement &allow-other-keys)
-  (when (and (subtypep element-type 'character)
-             (or (eq external-format :utf-8)
-                 (eq external-format :default)))
-    (make-instance 'utf-8-transcoder
-                   :replacement replacement)))
-
-(pushnew #'make-utf-8-transcoder *octet-transcoders*)
-
 ;;; unsigned-byte-8-transcoder
 
 (defclass unsigned-byte-8-transcoder (transcoder) ())
@@ -114,14 +104,6 @@
 
 (defmethod encoded-octet-length ((transcoder unsigned-byte-8-transcoder) elements)
   (length elements))
-
-(defun make-unsigned-byte-8-transcoder (element-type external-format
-                                        &key replacement &allow-other-keys)
-  (when (subtypep element-type '(unsigned-byte 8))
-    (make-instance 'unsigned-byte-8-transcoder
-                   :replacement replacement)))
-
-(pushnew #'make-unsigned-byte-8-transcoder *octet-transcoders*)
 
 (defmethod make-transcoder
     ((element-class (eql 'integer)) element-type (external-format (eql :be))

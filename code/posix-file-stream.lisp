@@ -59,6 +59,25 @@
   #+sicl (sicl-posix-high:write (descriptor stream)
                                 octets :start start :end (or end (length octets))))
 
+(defmethod stream-file-position ((stream posix-file-stream) &optional position)
+  #+sbcl
+  (case position
+    (:start
+     (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-set))
+    (:end
+     (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-end))
+    ((nil)
+     (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-cur))
+    (otherwise
+     (sb-posix:lseek (descriptor stream) position sb-posix:seek-set))))
+
+(defmethod stream-file-length ((stream posix-file-stream))
+  #+sbcl
+  (let ((current (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-cur)))
+    (prog1
+        (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-end)
+      (sb-posix:lseek (descriptor stream) current sb-posix:seek-set))))
+
 (defmethod close ((stream posix-file-stream) &key abort)
   (declare (ignore abort))
   (when (stream-open-p stream)
@@ -166,5 +185,5 @@
       (cond ((eq direction :probe)
              (close stream))
             (appending
-             (stream-position stream (stream-file-length stream))))
+             (stream-file-position stream (stream-file-length stream))))
       stream)))
