@@ -177,7 +177,14 @@
 
 (defgeneric encoded-length (transcoder elements))
 
-(defparameter *octet-transcoders* nil)
+(defparameter *default-external-format*
+  '(character :utf-8 integer :be))
+
+(defgeneric make-transcoder (element-class element-type external-format &rest options)
+  (:method (element-class element-type external-format &rest options)
+    (declare (ignore element-class options))
+    (error "Unable to find transcoder for element-type ~s and external-format ~s"
+           element-type external-format)))
 
 (defun check-stream (object)
   (unless (streamp object)

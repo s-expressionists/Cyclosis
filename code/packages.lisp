@@ -35,7 +35,8 @@
            #:two-way-stream
            #:two-way-stream-input-stream
            #:two-way-stream-output-stream)
-  (:export #:broadcast-stream
+  (:export #:*default-external-format*
+           #:broadcast-stream
            #:broadcast-stream-streams
            #:close
            #:coerce-input-stream
@@ -46,6 +47,7 @@
            #:echo-stream
            #:echo-stream-input-stream
            #:echo-stream-output-stream
+           #:encoded-length
            #:expand-with-input-from-string
            #:expand-with-open-file
            #:expand-with-open-stream
@@ -73,11 +75,13 @@
            #:make-string-input-stream
            #:make-string-output-stream
            #:make-synonym-stream
+           #:make-transcoder
            #:make-two-way-stream
            #:open-stream-p
            #:output-stream-p
            #:pathname
            #:posix-file-stream
+           #:read-element
            #:state-value
            #:stream
            #:stream-advance-to-column
@@ -100,12 +104,16 @@
            #:stream-read-char
            #:stream-read-char-no-hang
            #:stream-read-line
+           #:stream-read-octet
+           #:stream-read-octets
            #:stream-read-sequence
            #:stream-start-line-p
            #:stream-terpri
            #:stream-unread-char
            #:stream-write-byte
            #:stream-write-char
+           #:stream-write-octet
+           #:stream-write-octets
            #:stream-write-sequence
            #:stream-write-string
            #:streamp
@@ -118,4 +126,5 @@
            #:two-way-stream-input-stream
            #:two-way-stream-output-stream
            #:unexpected-eof
-           #:whitespace-char-p))
+           #:whitespace-char-p
+           #:write-element))

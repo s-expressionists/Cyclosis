@@ -83,6 +83,11 @@
           elements
           :initial-value 0))
 
+(defmethod make-transcoder
+    ((element-class (eql 'character)) element-type (external-format (eql :utf-8))
+     &rest options)
+  (apply #'make-instance 'utf-8-transcoder options))
+
 (defun make-utf-8-transcoder (element-type external-format
                               &key replacement &allow-other-keys)
   (when (and (subtypep element-type 'character)
@@ -117,3 +122,11 @@
                    :replacement replacement)))
 
 (pushnew #'make-unsigned-byte-8-transcoder *octet-transcoders*)
+
+(defmethod make-transcoder
+    ((element-class (eql 'integer)) element-type (external-format (eql :be))
+     &rest options)
+  (cond ((subtypep element-type '(unsigned-byte 8))
+         (apply #'make-instance 'unsigned-byte-8-transcoder options))
+        (t
+         (call-next-method))))

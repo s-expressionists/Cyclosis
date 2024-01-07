@@ -215,19 +215,25 @@
                    (element-type octet-element-type)
                    (external-format octet-external-format))
       instance
-    (loop with options = (if (listp external-format)
-                             (cdr external-format)
-                             nil)
-          with external-format = (if (listp external-format)
-                                     (car external-format)
-                                     external-format)
-          for coder in *octet-transcoders*
-          for %transcoder = (apply coder element-type external-format options)
-          when %transcoder
-            do (setf transcoder %transcoder)
-               (return-from update-transcoder))
-    (error "Unable to find transcoder for element-type ~s and external-format ~s"
-           element-type external-format)))
+    (let ((element-class (cond ((subtypep element-type 'integer)
+                                'integer)
+                               ((subtypep element-type 'character)
+                                'character)
+                               (t
+                                (error "Unknown element type ~s" element-type)))))
+      (setf transcoder
+            (apply #'make-transcoder
+                   element-class
+                   element-type
+                   (cond ((listp external-format)
+                          (car external-format))
+                         ((eq external-format :default)
+                          (getf *default-external-format* element-class))
+                         (t
+                          external-format))
+                   (if (listp external-format)
+                       (cdr external-format)
+                       nil))))))
 
 (defmethod initialize-instance :after ((instance octet-mixin) &rest initargs)
   (declare (ignore initargs))
