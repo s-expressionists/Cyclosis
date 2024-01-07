@@ -95,12 +95,12 @@
   (let* ((mode (logior sb-posix:s-irusr sb-posix:s-iwusr
                        sb-posix:s-irgrp sb-posix:s-iwgrp
                        sb-posix:s-iroth sb-posix:s-iwoth))
-(temp-path nil)
+         (flags 0)
+         (temp-path nil)
          (appending nil)
          (created nil)
          (descriptor nil)
-         (physical-path (translate-logical-pathname path))
-         (name (namestring physical-path))
+         (name (namestring path))
          (exists #+sbcl (handler-case
                             (zerop (sb-posix:access name sb-posix:f-ok))
 	                  (sb-posix:syscall-error () nil))))
@@ -110,71 +110,50 @@
            #+sbcl (setf descriptor (sb-posix:open name sb-posix:o-rdonly))
            (case if-does-not-exist
              (:error
-              (error 'file-error :pathname path))
+              (error 'file-does-not-exist :pathname path))
              (:create
-              #+sbcl (setf descriptor
-                           (sb-posix:open name
-                                          (logior sb-posix:o-creat sb-posix:o-rdonly)
-                                          mode)))
+              (ensure-directories-exist name)
+              (setf flags (logior sb-posix:o-creat sb-posix:o-rdonly)))
              (otherwise
               (return-from make-file-stream nil)))))
       (otherwise
        (when (and (eq if-exists :new-version) (eq if-does-not-exist :create))
          (setf exist nil))
+       (setf flags (if (eq direction :io)
+                       sb-posix:o-rdwr
+                       sb-posix:o-wronly))
        (if exists
-         (case if-exists
-           (:error
-            (error 'file-error :pathname path))
-           (:rename
-            (rename-file path (find-unique-pathname path "bak"))
-            #+sbcl (setf descriptor
-                         (sb-posix:open name
-                                        (logior sb-posix:o-creat
-                                                (if (eq direction :io)
-                                                    sb-posix:o-rdwr
-                                                    sb-posix:o-wronly))
-                                        mode)))
-           ((:rename-and-delete :new-version :supersede)
-            (setf temp-path (find-unique-pathname path "tmp"))
-            #+sbcl (setf descriptor
-                         (sb-posix:open (namestring temp-path)
-                                        (logior sb-posix:o-creat
-                                                (if (eq direction :io)
-                                                    sb-posix:o-rdwr
-                                                    sb-posix:o-wronly))
-                                        mode)))
-           (:append
-            (setf appending t)
-            #+sbcl (setf descriptor
-                         (sb-posix:open name
-                                        (if (eq direction :io)
-                                            sb-posix:o-rdwr
-                                            sb-posix:o-wronly))))
-           (:overwrite
-            #+sbcl (setf descriptor
-                         (sb-posix:open name
-                                        (if (eq direction :io)
-                                            sb-posix:o-rdwr
-                                            sb-posix:o-wronly))))
-           (otherwise
-            (return-from make-file-stream nil)))
-         (case if-does-not-exist
-           (:error
-            (error 'file-error :pathname path))
-           (:create
-            (setf created t)
-            #+sbcl (setf descriptor
-                         (sb-posix:open name
-                                        (logior sb-posix:o-creat
-                                                sb-posix:o-trunc
-                                                (if (eq direction :io)
-                                                    sb-posix:o-rdwr
-                                                    sb-posix:o-wronly))
-                                        mode)))
+           (case if-exists
+             (:error
+              (error 'file-exists :pathname path))
+             (:rename
+              (rename-file path (find-unique-pathname path "bak"))
+              (setf flags (logior flags sb-posix:o-creat)))
+             ((:rename-and-delete :new-version :supersede)
+              (setf temp-path (find-unique-pathname path "tmp")
+                    name (namestring temp-path))
+              (setf flags (logior flags sb-posix:o-creat)))
+             (:append
+              (setf appending t))
+             (:overwrite)
+             (otherwise
+              (return-from make-file-stream nil)))
+           (case if-does-not-exist
+             (:error
+              (error 'file-does-not-exist :pathname path))
+             (:create
+              (setf created t)
+              (ensure-directories-exist name)
+              (setf flags (logior flags sb-posix:o-creat sb-posix:o-trunc)))
            (otherwise
             (return-from make-file-stream nil))))))
-    (when (minusp descriptor)
-      (error 'file-error :pathname path))
+    #+sbcl
+    (setf descriptor
+          (handler-case
+              (sb-posix:open name flags mode)
+            (sb-posix:syscall-error (condition)
+              (error 'open-fail :pathname (pathname name)
+                                :message (sb-int:strerror (sb-posix:syscall-errno condition))))))
     (let ((stream (make-instance 'posix-file-stream
                                  :descriptor descriptor
                                  :pathname path

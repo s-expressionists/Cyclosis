@@ -175,6 +175,8 @@
 
 (defgeneric write-element (transcoder stream element))
 
+(defgeneric encoded-length (transcoder elements))
+
 (defparameter *octet-transcoders* nil)
 
 (defun check-stream (object)

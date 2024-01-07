@@ -50,6 +50,8 @@
            #:expand-with-open-file
            #:expand-with-open-stream
            #:expand-with-output-to-string
+           #:file-does-not-exist
+           #:file-exists
            #:file-stream
            #:fundamental-binary-input-stream
            #:fundamental-binary-output-stream
@@ -61,6 +63,7 @@
            #:fundamental-output-stream
            #:fundamental-stream
            #:get-output-stream-string
+           #:illegal-sequence
            #:input-stream-p
            #:interactive-stream-p
            #:make-broadcast-stream
@@ -109,8 +112,10 @@
            #:string-stream
            #:synonym-stream
            #:synonym-stream-symbol
+           #:transcode-error
            #:truename
            #:two-way-stream
            #:two-way-stream-input-stream
            #:two-way-stream-output-stream
+           #:unexpected-eof
            #:whitespace-char-p))

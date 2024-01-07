@@ -215,14 +215,17 @@
                    (element-type octet-element-type)
                    (external-format octet-external-format))
       instance
-    (loop for coder in *octet-transcoders*
-          do (multiple-value-bind (%transcoder %element-type %external-format)
-                 (funcall coder element-type external-format)
-               (when %transcoder
-                 (setf transcoder %transcoder
-                       element-type %element-type
-                       external-format %external-format)
-                 (return-from update-transcoder))))
+    (loop with options = (if (listp external-format)
+                             (cdr external-format)
+                             nil)
+          with external-format = (if (listp external-format)
+                                     (car external-format)
+                                     external-format)
+          for coder in *octet-transcoders*
+          for %transcoder = (apply coder element-type external-format options)
+          when %transcoder
+            do (setf transcoder %transcoder)
+               (return-from update-transcoder))
     (error "Unable to find transcoder for element-type ~s and external-format ~s"
            element-type external-format)))
 
@@ -267,3 +270,6 @@
 (defmethod stream-write-byte ((stream octet-mixin) integer)
   (check-binary-stream stream)
   (write-element (octet-transcoder stream) stream integer))
+
+(defmethod stream-file-string-length ((stream octet-mixin) string)
+  (encoded-length (octet-transcoder stream) string))

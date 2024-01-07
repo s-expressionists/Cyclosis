@@ -6,6 +6,7 @@
                 :serial t
                 :components ((:file "packages")
                              (:file "interface")
+                             (:file "conditions")
                              (:file "default-methods")
                              (:file "stream")
                              (:file "broadcast-stream")
