@@ -71,18 +71,19 @@
     cyclosis-extrinsic:write-string cyclosis-extrinsic:y-or-n-p
     cyclosis-extrinsic:yes-or-no-p))
 
-(defun test (&key exit)
+(defun test (&rest rest)
   (let ((system (asdf:find-system :cyclosis-extrinsic/test)))
-    (ansi-test-harness:ansi-test :directory (merge-pathnames
-                                             (make-pathname
-                                              :directory '(:relative
-                                                           "dependencies"
-                                                           "ansi-test"))
-                                             (asdf:component-pathname system))
-                                 :tests *tests*
-                                 :expected-failures (asdf:component-pathname
-                                                     (asdf:find-component
-                                                      system
-                                                      '("code" "expected-failures.sexp")))
-                                 :exit exit
-                                 :extrinsic-symbols *symbols*)))
+    (apply #'ansi-test-harness:ansi-test
+           :directory (merge-pathnames
+                       (make-pathname
+                        :directory '(:relative
+                                     "dependencies"
+                                     "ansi-test"))
+                       (asdf:component-pathname system))
+           :tests *tests*
+           :expected-failures (asdf:component-pathname
+                               (asdf:find-component
+                                system
+                                '("code" "expected-failures.sexp")))
+           :extrinsic-symbols *symbols*
+           rest)))
