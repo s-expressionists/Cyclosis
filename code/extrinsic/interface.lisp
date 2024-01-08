@@ -111,6 +111,8 @@
 (defmethod cyclosis:make-file-stream
     ((client extrinsic-client) path direction
      if-exists if-does-not-exist element-type external-format)
+  (when (eq if-does-not-exist :create)
+    (ensure-directories-exist path))
   (let ((target (cl:open path :direction direction
                               :if-exists if-exists
                               :if-does-not-exist if-does-not-exist
@@ -228,6 +230,7 @@
   #'extrinsic-format)
 
 (defmethod cyclosis:whitespace-char-p ((client extrinsic-client) ch)
+  #+abcl (java:jcall "isWhitespace" *readtable* ch)
   #+ccl (ccl::whitespacep ch)
   #+clasp
     (eq (core:syntax-type *readtable* ch) :whitespace)
@@ -237,8 +240,8 @@
                    "ecl_readtable_get(ecl_current_readtable(), ECL_CHAR_CODE(#0), NULL) == cat_whitespace"
                             :one-liner t)
   #+sbcl (sb-impl::whitespace[2]p ch *readtable*)
-  #-(or ccl clasp cmucl (and ecl (not bytecode)) sbcl)
-    (and (member char '(#\tab #\newline #\linefeed #\page #\return #\space))
+  #-(or abcl ccl clasp cmucl (and ecl (not bytecode)) sbcl)
+    (and (member ch '(#\tab #\newline #\linefeed #\page #\return #\space))
          t))
 
 (cyclosis:define-interface *client*)

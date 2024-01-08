@@ -74,12 +74,8 @@
 (defun test (&rest rest)
   (let ((system (asdf:find-system :cyclosis-extrinsic/test)))
     (apply #'ansi-test-harness:ansi-test
-           :directory (merge-pathnames
-                       (make-pathname
-                        :directory '(:relative
-                                     "dependencies"
-                                     "ansi-test"))
-                       (asdf:component-pathname system))
+           :directory (merge-pathnames #P"dependencies/ansi-test/"
+                                       (asdf:component-pathname system))
            :tests *tests*
            :expected-failures (asdf:component-pathname
                                (asdf:find-component
