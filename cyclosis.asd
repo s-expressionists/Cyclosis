@@ -15,5 +15,11 @@
                              (:file "string-stream")
                              (:file "synonym-stream")
                              (:file "two-way-stream")
-                             (:file "transcoders")
-                             (:file "posix-file-stream")))))
+                             (:file "posix-file-stream")
+                             (:module "transcode"
+                              :serial t
+                              :components ((:file "common")
+                                           (:file "character")
+                                           (:file "utf-8")
+                                           (:file "utf-32")
+                                           (:file "unsigned-byte")))))))
