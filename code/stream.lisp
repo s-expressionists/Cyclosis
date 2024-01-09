@@ -215,25 +215,21 @@
                    (element-type octet-element-type)
                    (external-format octet-external-format))
       instance
-    (let ((element-class (cond ((subtypep element-type 'integer)
-                                'integer)
-                               ((subtypep element-type 'character)
-                                'character)
-                               (t
-                                (error "Unknown element type ~s" element-type)))))
-      (setf transcoder
-            (apply #'make-transcoder
-                   element-class
-                   element-type
-                   (cond ((listp external-format)
-                          (car external-format))
-                         ((eq external-format :default)
-                          (getf *default-external-format* element-class))
-                         (t
-                          external-format))
-                   (if (listp external-format)
-                       (cdr external-format)
-                       nil))))))
+    (setf transcoder
+          (apply #'make-transcoder
+                 (cond ((listp external-format)
+                        (car external-format))
+                       ((not (eq external-format :default))
+                        external-format)
+                       ((subtypep element-type 'integer)
+                        *default-binary-external-format*)
+                       ((subtypep element-type 'character)
+                        *default-character-external-format*)
+                       (error "Unknown element type ~s" element-type))
+                 element-type
+                 (if (listp external-format)
+                     (cdr external-format)
+                     nil)))))
 
 (defmethod initialize-instance :after ((instance octet-mixin) &rest initargs)
   (declare (ignore initargs))

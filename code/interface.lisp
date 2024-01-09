@@ -182,12 +182,13 @@
     (declare (ignore))
     1))
 
-(defparameter *default-external-format*
-  '(character :utf-8 integer :be))
+(defparameter *default-character-external-format* :utf-8)
 
-(defgeneric make-transcoder (element-class element-type external-format &rest options)
-  (:method (element-class element-type external-format &rest options)
-    (declare (ignore element-class options))
+(defparameter *default-binary-external-format* :be)
+
+(defgeneric make-transcoder (external-format element-type &rest options)
+  (:method (external-format element-type &rest options)
+    (declare (ignore options))
     (error "Unable to find transcoder for element-type ~s and external-format ~s"
            element-type external-format)))
 

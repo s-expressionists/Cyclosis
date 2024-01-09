@@ -35,7 +35,8 @@
            #:two-way-stream
            #:two-way-stream-input-stream
            #:two-way-stream-output-stream)
-  (:export #:*default-external-format*
+  (:export #:*default-binary-external-format*
+           #:*default-character-external-format*
            #:broadcast-stream
            #:broadcast-stream-streams
            #:close

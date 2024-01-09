@@ -126,8 +126,7 @@
           :initial-value 0))
 
 (defmethod make-transcoder
-    ((element-class (eql 'character)) element-type (external-format (eql :utf-8))
-     &rest options)
+    ((external-format (eql :utf-8)) element-type &rest options)
   (apply #'make-instance 'utf-8-transcoder options))
 
 ;;; unsigned-byte-8-transcoder
@@ -179,8 +178,7 @@
   (* (element-length transcoder) (length elements)))
 
 (defmethod make-transcoder
-    ((element-class (eql 'integer)) element-type (external-format (eql :be))
-     &rest options)
+    ((external-format (eql :be)) element-type &rest options)
   (cond ((or (subtypep element-type '(unsigned-byte 8))
              (eq element-type 'unsigned-byte)
              (equal element-type '(unsigned-byte *))
