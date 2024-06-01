@@ -9,7 +9,9 @@
 ;;; Gray Streams classes.
 
 (defclass fundamental-stream (stream)
-  ((%openp :initform t :accessor stream-open-p))
+  ((%openp :accessor stream-open-p
+           :initform t
+           :type boolean))
   (:documentation "The base class for all Gray streams."))
 
 (defclass fundamental-input-stream (fundamental-stream)
@@ -22,27 +24,37 @@
 
 (defclass fundamental-character-stream (fundamental-stream)
   ()
-  (:documentation "A superclass of all Gray streams whose element-type is a subtype of character."))
+  (:documentation "A superclass of all Gray streams whose element-type is a subtype of
+ character."))
 
 (defclass fundamental-binary-stream (fundamental-stream)
   ()
-  (:documentation "A superclass of all Gray streams whose element-type is a subtype of unsigned-byte or signed-byte."))
+  (:documentation "A superclass of all Gray streams whose element-type is a subtype of
+ unsigned-byte or signed-byte."))
 
-(defclass fundamental-character-input-stream (fundamental-input-stream fundamental-character-stream)
+(defclass fundamental-character-input-stream
+    (fundamental-input-stream fundamental-character-stream)
   ()
-  (:documentation "A superclass of all Gray input streams whose element-type is a subtype of unsigned-byte or signed-byte."))
+  (:documentation "A superclass of all Gray input streams whose element-type is a
+subtype of unsigned-byte or signed-byte."))
 
-(defclass fundamental-character-output-stream (fundamental-output-stream fundamental-character-stream)
+(defclass fundamental-character-output-stream
+    (fundamental-output-stream fundamental-character-stream)
   ()
-  (:documentation "A superclass of all Gray output streams whose element-type is a subtype of character."))
+  (:documentation "A superclass of all Gray output streams whose element-type is a
+subtype of character."))
 
-(defclass fundamental-binary-input-stream (fundamental-input-stream fundamental-binary-stream)
+(defclass fundamental-binary-input-stream
+    (fundamental-input-stream fundamental-binary-stream)
   ()
-  (:documentation "A superclass of all Gray input streams whose element-type is a subtype of unsigned-byte or signed-byte."))
+  (:documentation "A superclass of all Gray input streams whose element-type is a
+subtype of unsigned-byte or signed-byte."))
 
-(defclass fundamental-binary-output-stream (fundamental-output-stream fundamental-binary-stream)
+(defclass fundamental-binary-output-stream
+    (fundamental-output-stream fundamental-binary-stream)
   ()
-  (:documentation "A superclass of all Gray output streams whose element-type is a subtype of unsigned-byte or signed-byte."))
+  (:documentation "A superclass of all Gray output streams whose element-type is a
+subtype of unsigned-byte or signed-byte."))
 
 ;;; Gray stream generic functions
 
@@ -209,7 +221,15 @@
     (error 'stream-error :stream object)))
 
 (defun check-character-stream (object)
-  (unless (subtypep (stream-element-type object) 'character)
+  ;; This bizarre logic is needed because CL:FILE-STREAM-LENGTH is
+  ;; required to return 1 for an empty broadcast stream while
+  ;; CL:STREAM-ELEMENT-TYPE is required to return T. These two
+  ;; requirements are contradictions, but the former normally requires
+  ;; a character stream, but the latter means that it is not a
+  ;; character stream.
+  (unless (or (subtypep (stream-element-type object) 'character)
+              (and (typep object 'broadcast-stream)
+                   (null (broadcast-stream-streams object))))
     (error 'stream-error :stream object)))
 
 (defun check-binary-stream (object)
@@ -368,7 +388,7 @@
 
        (defun ,(ensure-symbol '#:file-position intrinsic-pkg)
            (stream &optional (position-spec nil position-spec-p))
-         (check-type stream stream)
+         (check-stream stream)
          (cond (position-spec-p
                 (check-type position-spec (or (integer 0) (member :start :end)))
                 (stream-file-position stream position-spec))
@@ -377,12 +397,13 @@
 
        (defun ,(ensure-symbol '#:file-length intrinsic-pkg)
            (stream)
-         (check-type stream stream)
+         (check-stream stream)
          (stream-file-length stream))
 
        (defun ,(ensure-symbol '#:file-string-length intrinsic-pkg)
            (stream object)
-         (check-type stream stream)
+         (check-output-stream stream)
+         (check-character-stream stream)
          (check-type object (or string character))
          (when (characterp object)
            (setf object (string object)))

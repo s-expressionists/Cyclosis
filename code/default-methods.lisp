@@ -167,7 +167,7 @@
 
 (defmethod stream-advance-to-column
     ((stream fundamental-character-output-stream) column)
-  (let ((current (line-column stream)))
+  (let ((current (stream-line-column stream)))
     (when current
       (dotimes (i (- column current))
         (stream-write-char stream #\Newline))

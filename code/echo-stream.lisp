@@ -80,9 +80,9 @@
 (defmethod stream-read-line ((stream echo-stream))
   (multiple-value-bind (line missing-newline-p)
       (stream-read-line (echo-stream-input-stream stream))
-    (if missing-newline-p
-        (stream-write-string (echo-stream-output-stream stream) line)
-        (stream-write-line (echo-stream-output-stream stream) line))
+    (stream-write-string (echo-stream-output-stream stream) line)
+    (unless missing-newline-p
+      (stream-terpri (echo-stream-output-stream stream)))
     (values line missing-newline-p)))
 
 (defmethod stream-fresh-line ((stream echo-stream))

@@ -225,7 +225,8 @@
                         *default-binary-external-format*)
                        ((subtypep element-type 'character)
                         *default-character-external-format*)
-                       (error "Unknown element type ~s" element-type))
+                       (t
+                        (error "Unknown element type ~s" element-type)))
                  element-type
                  (if (listp external-format)
                      (cdr external-format)

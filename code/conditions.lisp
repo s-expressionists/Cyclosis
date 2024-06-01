@@ -24,20 +24,35 @@
              (open-fail-message condition)))))
 
 (define-condition transcode-error (stream-error)
-  ((octets :reader transcode-error-reader
+  ())
+
+(define-condition decode-error (stream-error)
+  ((octets :reader decode-error-octets
            :initform nil
            :initarg :octets)))
 
-(define-condition illegal-sequence (transcode-error)
+(define-condition encode-error (stream-error)
+  ((element :reader encode-error-element
+            :initform nil
+            :initarg :element)))
+
+(define-condition illegal-sequence (decode-error)
   ()
   (:report (lambda (condition stream)
              (format stream "Illegal sequence ~s while decoding from ~s"
-                     (transcode-error-octets condition)
+                     (decode-error-octets condition)
                      (stream-error-stream condition)))))
 
 (define-condition unexpected-eof (transcode-error)
   ()
   (:report (lambda (condition stream)
              (format stream "Unexpected EOF in sequence ~s while decoding from ~s"
-                     (transcode-error-octets condition)
+                     (decode-error-octets condition)
+                     (stream-error-stream condition)))))
+
+(define-condition invalid-element (encode-error)
+  ()
+  (:report (lambda (condition stream)
+             (format stream "The element ~s cannot be encoded to ~s"
+                     (encode-error-element condition)
                      (stream-error-stream condition)))))

@@ -13,3 +13,6 @@
   (or (replacement transcoder)
       (error 'unexpected-eof :stream stream :octets octets)))
 
+(defun invalid-element (transcoder stream element)
+  (or (replacement transcoder)
+      (error 'invalid-element :stream stream :element element)))

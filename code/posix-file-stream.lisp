@@ -38,7 +38,7 @@
             :type boolean)))
 
 (defmethod truename ((stream posix-file-stream))
-  (let ((path (or (temp-pathname stream) (%pathname stream))))
+  (let ((path (or (temp-pathname stream) (pathname stream))))
     (if path
         (truename path)
         nil)))
@@ -134,7 +134,8 @@
     (case direction
       ((:input :probe)
        (if exists
-           #+sbcl (setf descriptor (sb-posix:open name sb-posix:o-rdonly))
+           #+sbcl (setf (descriptor stream)
+                        (sb-posix:open name sb-posix:o-rdonly))
            (case if-does-not-exist
              (:error
               (error 'file-does-not-exist :pathname path))
@@ -145,7 +146,7 @@
               (return-from make-file-stream nil)))))
       (otherwise
        (when (and (eq if-exists :new-version) (eq if-does-not-exist :create))
-         (setf exist nil))
+         (setf exists nil))
        (setf flags (if (eq direction :io)
                        sb-posix:o-rdwr
                        sb-posix:o-wronly))
