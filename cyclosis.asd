@@ -21,7 +21,7 @@
                               :components ((:file "common")
                                            (:file "character")
                                            (:file "ascii")
-                                           (:file "iso-8859-1")
+                                           (:file "iso-8859")
                                            (:file "utf-8")
                                            (:file "utf-32")
                                            (:file "unsigned-byte")))))))
