@@ -45,7 +45,7 @@
 (defmethod encoded-length ((transcoder octet-transcoder) elements)
   (length elements))
 
-(defmacro define-octet-transcoder (name key &rest mapping)
+(defmacro define-octet-transcoder (name keys &rest mapping)
   `(progn
      (defclass ,name (octet-transcoder)
        ((encode-table :accessor encode-table
@@ -73,6 +73,11 @@
                       :allocation :class
                       :type hash-table)))
 
-     (defmethod make-transcoder
-         ((external-format (eql ,key)) element-type &rest options)
-       (apply #'make-instance ',name options))))
+     ,@(mapcar (lambda (key)
+                 `(defmethod make-transcoder
+                      ((external-format (eql ,key)) element-type &rest options)
+                    (declare (ignore element-type))
+                    (apply #'make-instance ',name options)))
+               (if (listp keys)
+                   keys
+                   (list keys)))))

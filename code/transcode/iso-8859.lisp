@@ -1,9 +1,11 @@
 (cl:in-package #:cyclosis)
 
-(define-octet-transcoder iso-8859-1-transcoder :iso-8859-1
+(define-octet-transcoder iso-8859-1-transcoder
+    (:iso-8859-1 :iso8859-1 :latin-1 :latin1)
   (#x00 #xff #x00 #xff))
 
-(define-octet-transcoder iso-8859-2-transcoder :iso-8859-2
+(define-octet-transcoder iso-8859-2-transcoder
+    (:iso-8859-2 :iso8859-2 :latin-2 :latin2)
   (#x00 #xa0 #x00 #xa0)
   (#xa1 #x0104)
   (#xa2 #x02d8)
@@ -63,7 +65,8 @@
   (#xfe #x0163)
   (#xff #x02d9))
 
-(define-octet-transcoder iso-8859-3-transcoder :iso-8859-3
+(define-octet-transcoder iso-8859-3-transcoder
+    (:iso-8859-3 :iso8859-3 :latin-3 :latin3)
   (#x00 #xa0 #x00 #xa0)
   (#xa1 #x0126)
   (#xa2 #x02d8)
@@ -94,7 +97,8 @@
   (#xfe #x015d)
   (#xff #x02d9))
 
-(define-octet-transcoder iso-8859-4-transcoder :iso-8859-4
+(define-octet-transcoder iso-8859-4-transcoder
+    (:iso-8859-4 :iso8859-4 :latin-4 :latin4)
   (#x00 #xa0 #x00 #xa0)
   (#xa1 #x0104)
   (#xa2 #x0138)
@@ -147,7 +151,8 @@
   (#xfe #x016b)
   (#xff #x02d9))
 
-(define-octet-transcoder iso-8859-5-transcoder :iso-8859-5
+(define-octet-transcoder iso-8859-5-transcoder
+    (:iso-8859-5 :cyrillic)
   (#x00 #xa0 #x00 #xa0)
   (#xa1 #x0401)
   (#xa2 #x0402)
@@ -244,7 +249,8 @@
   (#xfe #x045e)
   (#xff #x045f))
 
-(define-octet-transcoder iso-8859-6-transcoder :iso-8859-6
+(define-octet-transcoder iso-8859-6-transcoder
+    (:iso-8859-6 :arabic)
   (#x00 #xa0 #x00 #xa0)
   (#xac #x060c)
   (#xbb #x061b)
@@ -295,7 +301,8 @@
   (#xf1 #x0651)
   (#xf2 #x0652))
 
-(define-octet-transcoder iso-8859-7-transcoder :iso-8859-7
+(define-octet-transcoder iso-8859-7-transcoder
+    (:iso-8859-7 :greek)
   (#x00 #xa0 #x00 #xa0)
   (#xa1 #x02bd)
   (#xa2 #x02bc)
@@ -372,7 +379,8 @@
   (#xfd #x03cd)
   (#xfe #x03ce))
 
-(define-octet-transcoder iso-8859-8-transcoder :iso-8859-8
+(define-octet-transcoder iso-8859-8-transcoder
+    (:iso-8859-8 :hebrew)
   (#x00 #xa0 #x00 #xa0)
   (#xaa #x00d7)
   (#xaf #x203e)
@@ -406,7 +414,8 @@
   (#xf9 #x05e9)
   (#xfa #x05ea))
 
-(define-octet-transcoder iso-8859-9-transcoder :iso-8859-9
+(define-octet-transcoder iso-8859-9-transcoder
+    (:iso-8859-9 :iso8859-9 :latin-5 :latin5)
   (#x00 #xa0 #x00 #xa0)
   (#xd0 #x011e)
   (#xdd #x0130)
@@ -415,7 +424,8 @@
   (#xfd #x0131)
   (#xfe #x015f))
 
-(define-octet-transcoder iso-8859-10-transcoder :iso-8859-10
+(define-octet-transcoder iso-8859-10-transcoder
+    (:iso-8859-10 :iso8859-10 :latin- :latin6)
   (#x00 #xa0 #x00 #xa0)
   (#xa1 #x0104)
   (#xa2 #x0112)
@@ -464,7 +474,8 @@
   (#xf9 #x0173)
   (#xff #x0138))
 
-(define-octet-transcoder iso-8859-11-transcoder :iso-8859-11
+(define-octet-transcoder iso-8859-11-transcoder
+    (:iso-8859-11 :thai)
   (#x00 #xa0 #x00 #xa0)
   (#xa1 #x0e01)
   (#xa2 #x0e02)
@@ -554,7 +565,8 @@
   (#xfa #x0e5a)
   (#xfb #x0e5b))
 
-(define-octet-transcoder iso-8859-13-transcoder :iso-8859-13
+(define-octet-transcoder iso-8859-13-transcoder
+    (:iso-8859-13 :iso8859-13 :latin-7 :latin7)
   (#x00 #xa0 #x00 #xa0)
   (#xa1 #x201d)
   (#xa5 #x201e)
@@ -613,7 +625,8 @@
   (#xfe #x017e)
   (#xff #x2019))
 
-(define-octet-transcoder iso-8859-14-transcoder :iso-8859-14
+(define-octet-transcoder iso-8859-14-transcoder
+    (:iso-8859-14 :iso8859-14 :latin-8 :latin8)
   (#x00 #xa0 #x00 #xa0)
   (#xa1 #x1e02)
   (#xa2 #x1e03)
@@ -647,7 +660,8 @@
   (#xf7 #x1e6b)
   (#xfe #x0177))
 
-(define-octet-transcoder iso-8859-15-transcoder :iso-8859-15
+(define-octet-transcoder iso-8859-15-transcoder
+    (:iso-8859-15 :iso8859-15 :latin-9 :latin9)
   (#x00 #xa0 #x00 #xa0)
   (#xa4 #x20ac)
   (#xa6 #x0160)
