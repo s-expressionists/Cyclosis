@@ -30,7 +30,7 @@
         :eof
         (multiple-value-bind (element presentp)
             (gethash octet (decode-table transcoder))
-          (if presetp
+          (if presentp
               (coerce element (stream-element-type stream))
               (illegal-sequence transcoder stream octet))))))
 
