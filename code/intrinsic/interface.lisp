@@ -80,7 +80,7 @@
   #+sicl (eq (eclector.readtable:syntax-type *readtable* ch) :whitespace)
   #+sbcl (sb-impl::whitespace[2]p ch *readtable*)
   #-(or ccl clasp cmucl (and ecl (not bytecode)) sbcl)
-    (and (member char '(#\tab #\newline #\linefeed #\page #\return #\space))
+    (and (member ch '(#\tab #\newline #\linefeed #\page #\return #\space))
          t))
 
 (cyclosis:define-interface *client* :intrinsic t)
