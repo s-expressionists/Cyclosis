@@ -110,7 +110,7 @@
         unless (probe-file new-path)
           return new-path))
 
-#+(or sbcl sicl)
+#+sbcl
 (defmethod cyclosis:make-file-stream
     (client path direction if-exists if-does-not-exist element-type external-format)
   (declare (ignore client))
