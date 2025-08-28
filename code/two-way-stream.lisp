@@ -10,12 +10,10 @@
    (output-stream :initarg :output-stream
                   :reader two-way-stream-output-stream)))
 
-(defun make-two-way-stream (input-stream output-stream)
-  (check-input-stream input-stream)
-  (check-output-stream output-stream)
-  (make-instance 'two-way-stream
-                 :input-stream input-stream
-                 :output-stream output-stream))
+(defmethod initialize-instance :after ((instance two-way-stream) &rest initargs &key)
+  (declare (ignore initargs))
+  (check-input-stream (two-way-stream-input-stream instance))
+  (check-output-stream (two-way-stream-output-stream instance)))
 
 (defmethod stream-read-char ((stream two-way-stream))
   (check-open-stream stream)

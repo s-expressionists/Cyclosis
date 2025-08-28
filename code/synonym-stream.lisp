@@ -3,12 +3,14 @@
 ;;; Synonym stream.
 
 (defclass synonym-stream (fundamental-stream)
-  ((%symbol :initarg :symbol
-            :reader synonym-stream-symbol)))
+  ((%symbol :reader synonym-stream-symbol
+            :accessor %symbol
+            :initarg :symbol
+            :type symbol)))
 
-(defun make-synonym-stream (symbol)
-  (check-type symbol symbol)
-  (make-instance 'synonym-stream :symbol symbol))
+(defmethod initialize-instance :after ((instance synonym-stream) &rest initargs &key)
+  (declare (ignore initargs))
+  (check-type (%symbol instance) symbol))
 
 (defmethod print-object ((object synonym-stream) stream)
   (print-unreadable-object (object stream :type t)

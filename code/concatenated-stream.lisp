@@ -4,13 +4,18 @@
 
 (defclass concatenated-stream (character-input-mixin
                                fundamental-character-input-stream)
-  ((streams :initarg :streams
-            :reader concatenated-stream-streams
-            :accessor %streams)))
+  ((streams :reader concatenated-stream-streams
+            :accessor %streams
+            :initarg :streams
+            :type list))
+  (:documentation "A concatenated stream is an input stream which is a composite stream of zero
+or more other input streams, such that the sequence of data which can be read from the
+concatenated stream is the same as the concatenation of the sequences of data which could be
+read from each of the constituent streams."))
 
-(defun make-concatenated-stream (&rest input-streams)
-  (mapc #'check-input-stream input-streams)
-  (make-instance 'concatenated-stream :streams input-streams))
+(defmethod initialize-instance :after ((instance concatenated-stream) &rest initargs &key)
+  (declare (ignore initargs))
+  (mapc #'check-input-stream (concatenated-stream-streams instance)))
 
 (defmethod stream-element-type ((stream concatenated-stream))
   (if (concatenated-stream-streams stream)

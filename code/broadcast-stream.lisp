@@ -3,11 +3,17 @@
 ;;; Broadcast stream.
 
 (defclass broadcast-stream (fundamental-output-stream)
-  ((%streams :initarg :streams :reader broadcast-stream-streams)))
+  ((%streams :reader broadcast-stream-streams
+             :initarg :streams
+             :type list))
+  (:documentation "A broadcast stream is an output stream which has associated with it a set of
+zero or more output streams such that any output sent to the broadcast stream gets passed on as
+output to each of the associated output streams. (If a broadcast stream has no component
+streams, then all output to the broadcast stream is discarded.)"))
 
-(defun make-broadcast-stream (&rest streams)
-  (mapc #'check-output-stream streams)
-  (make-instance 'broadcast-stream :streams streams))
+(defmethod initialize-instance :after ((instance broadcast-stream) &rest initargs &key)
+  (declare (ignore initargs))
+  (mapc #'check-output-stream (broadcast-stream-streams instance)))
 
 (defmacro broadcast-stream-op ((substream broadcast-stream default) &body body)
   `(loop with result = ,default

@@ -5,17 +5,19 @@
 (defclass echo-stream (fundamental-output-stream
                        fundamental-input-stream
                        character-input-mixin)
-  ((input-stream :initarg :input-stream
-                 :reader echo-stream-input-stream)
-   (output-stream :initarg :output-stream
-                  :reader echo-stream-output-stream)))
+  ((input-stream :reader echo-stream-input-stream
+                 :initarg :input-stream
+                 :type input-stream)
+   (output-stream :reader echo-stream-output-stream
+                  :initarg :output-stream
+                  :type output-stream))
+  (:documentation "An echo stream is a bidirectional stream that gets its input from an
+associated input stream and sends its output to an associated output stream."))
 
-(defun make-echo-stream (input-stream output-stream)
-  (check-input-stream input-stream)
-  (check-output-stream output-stream)
-  (make-instance 'echo-stream
-                 :input-stream input-stream
-                 :output-stream output-stream))
+(defmethod initialize-instance :after ((instance echo-stream) &rest initargs &key)
+  (declare (ignore initargs))
+  (check-input-stream (echo-stream-input-stream instance))
+  (check-output-stream (echo-stream-output-stream instance)))
 
 (defmethod stream-element-type ((stream echo-stream))
   (let ((in (stream-element-type (echo-stream-input-stream stream)))

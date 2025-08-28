@@ -1,8 +1,14 @@
 (cl:in-package #:cyclosis)
 
 (defclass string-stream (stream)
-  ((string :initarg :string
-           :reader string-stream-string)))
+  ((string :reader string-stream-string
+           :accessor %string
+           :initarg :string
+           :type string)))
+
+(defmethod initialize-instance :after ((instance string-stream) &rest initargs &key)
+  (declare (ignore initargs))
+  (check-type (%string instance) string))
 
 ;;; String output stream and with-output-to-string.
 
@@ -11,18 +17,11 @@
      fundamental-character-output-stream)
   ())
 
-(defmethod initialize-instance :after ((instance string-output-stream) &rest initargs)
+(defmethod initialize-instance :after ((instance string-output-stream) &rest initargs &key)
   (declare (ignore initargs))
   (unless (array-has-fill-pointer-p (string-stream-string instance))
     (error "~S must be a string with a fill-pointer"
            (string-stream-string instance))))
-
-(defun make-string-output-stream (&key (element-type 'character))
-  (when (not (subtypep element-type 'character))
-    (error "Element-type ~S must be a subtype of CHARACTER" element-type))
-  (make-instance 'string-output-stream
-                 :string (make-array 8 :element-type element-type
-                                       :fill-pointer 0 :adjustable t)))
 
 (defun get-output-stream-string (string-output-stream)
   (check-type string-output-stream string-output-stream)
@@ -83,7 +82,10 @@
                                                  :string (progn ,string-form)))
                                body)
       (expand-with-open-stream var
-                               `(make-string-output-stream :element-type ,element-type)
+                               `(make-instance 'string-output-stream
+                                               :string (make-array 8
+                                                                   :element-type ,element-type
+                                                                   :fill-pointer 0 :adjustable t))
                                `(,@body
                                  (get-output-stream-string ,var)))))
 
@@ -98,14 +100,6 @@
           :reader string-input-stream-start)
    (end :initarg :end
         :reader string-input-stream-end)))
-
-(defun make-string-input-stream (string &optional (start 0) end)
-  (check-type string string)
-  (make-instance 'string-input-stream
-                 :string string
-                 :start start
-                 :position start
-                 :end (or end (length string))))
 
 (defmethod stream-read-char ((stream string-input-stream))
   (with-accessors ((position string-input-stream-position)

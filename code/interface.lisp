@@ -350,13 +350,6 @@ subtype of unsigned-byte or signed-byte."))
                     get-output-stream-string
                     input-stream-p
                     interactive-stream-p
-                    make-broadcast-stream
-                    make-concatenated-stream
-                    make-echo-stream
-                    make-string-input-stream
-                    make-string-output-stream
-                    make-synonym-stream
-                    make-two-way-stream
                     open-stream-p
                     output-stream-p
                     pathname
@@ -404,6 +397,51 @@ subtype of unsigned-byte or signed-byte."))
 
       (defparameter ,query-io-sym
         (trinsic:initial-cell-value ,client-var 'cl:*query-io* 'cl:variable))
+
+      (defun ,make-broadcast-stream-sym (&rest output-streams)
+        "Returns a broadcast stream that has the indicated output-streams initially associated
+with it."
+        (make-instance 'broadcast-stream :streams output-streams))
+
+      (defun ,make-concatenated-stream-sym (&rest input-streams)
+        "Returns a concatenated stream that has the indicated input-streams initially
+associated with it."
+        (make-instance 'concatenated-stream :streams input-streams))
+
+      (defun ,make-echo-stream-sym (input-stream output-stream)
+        "Creates and returns an echo stream that takes input from input-stream and sends output
+to output-stream."
+        (make-instance 'echo-stream
+                       :input-stream input-stream
+                       :output-stream output-stream))
+
+      (defun ,make-string-input-stream-sym (string &optional (start 0) end)
+        "Returns an input string stream. This stream will supply, in order, the characters in
+the substring of string bounded by start and end. After the last character has been supplied,
+the string stream will then be at end of file."
+        (make-instance 'string-input-stream
+                       :string string
+                       :start start
+                       :position start
+                       :end (or end (length string))))
+
+      (defun ,make-string-output-stream-sym (&key (element-type 'character))
+        "Returns an output string stream that accepts characters and makes available (via
+get-output-stream-string) a string that contains the characters that were actually output."
+        (make-instance 'string-output-stream
+                       :string (make-array 8 :element-type element-type
+                                             :fill-pointer 0 :adjustable t)))
+
+      (defun ,make-synonym-stream-sym (symbol)
+        "Returns a synonym stream whose synonym stream symbol is symbol."
+        (make-instance 'synonym-stream :symbol symbol))
+
+      (defun ,make-two-way-stream-sym (input-stream output-stream)
+        "Returns a two-way stream that gets its input from input-stream and sends its output to
+output-stream."
+        (make-instance 'two-way-stream
+                       :input-stream input-stream
+                       :output-stream output-stream))
 
       (defun ,open-sym
           (filespec

@@ -18,6 +18,13 @@
            #:force-output
            #:fresh-line
            #:listen
+           #:make-broadcast-stream
+           #:make-concatenated-stream
+           #:make-echo-stream
+           #:make-string-input-stream
+           #:make-string-output-stream
+           #:make-synonym-stream
+           #:make-two-way-stream
            #:open
            #:peek-char
            #:read-byte
