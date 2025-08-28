@@ -591,11 +591,15 @@ output-stream."
         (yes-or-no-p/compiler-macro ,client-var whole control arguments))
 
       (defun ,write-string-sym (string &optional stream &key (start 0) end)
+        "write-string writes the characters of the subsequence of string bounded by start and
+end to output-stream."
         (check-type string string)
         (stream-write-string (coerce-output-stream ,client-var stream) string start end)
         string)
 
       (defun ,write-line-sym (string &optional stream &key (start 0) end)
+        "write-line writes the characters of the subsequence of string bounded by start and end
+to output-stream and then outputs a newline."
         (check-type string string)
         (let ((stream (coerce-output-stream ,client-var stream)))
           (stream-write-string stream string start end)
@@ -603,10 +607,14 @@ output-stream."
         string)
 
       (defun ,terpri-sym (&optional stream)
+        "terpri outputs a newline to output-stream."
         (stream-terpri (coerce-output-stream ,client-var stream))
         nil)
 
       (defun ,fresh-line-sym (&optional stream)
+        "fresh-line is similar to terpri but outputs a newline only if the output-stream is not
+already at the start of a line. If for some reason this cannot be determined, then a newline is
+output anyway. fresh-line returns true if it outputs a newline; otherwise it returns false."
         (stream-fresh-line (coerce-output-stream ,client-var stream)))
 
       (defun ,start-line-p-sym (&optional stream)
