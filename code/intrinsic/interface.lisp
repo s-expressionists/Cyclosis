@@ -30,43 +30,33 @@
 (defparameter +terminal-io+
   (cyclosis:make-two-way-stream +standard-input+ +standard-output+))
 
-(defparameter *standard-input* (cyclosis:make-synonym-stream '+standard-input+))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*standard-input*)) (type (eql 'cl:variable)))
+  (cyclosis:make-synonym-stream '+standard-input+))
 
-(defparameter *standard-output* (cyclosis:make-synonym-stream '+standard-output+))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*standard-output*)) (type (eql 'cl:variable)))
+  (cyclosis:make-synonym-stream '+standard-output+))
 
-(defparameter *error-output* (cyclosis:make-synonym-stream '+error-output+))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*error-output*)) (type (eql 'cl:variable)))
+  (cyclosis:make-synonym-stream '+error-output+))
 
-(defparameter *trace-output* (cyclosis:make-synonym-stream '+error-output+))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*trace-output*)) (type (eql 'cl:variable)))
+  (cyclosis:make-synonym-stream '+error-output+))
 
-(defparameter *terminal-io* (cyclosis:make-synonym-stream '+terminal-io+))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*terminal-io*)) (type (eql 'cl:variable)))
+  (cyclosis:make-synonym-stream '+terminal-io+))
 
-(defparameter *debug-io* (cyclosis:make-synonym-stream '+terminal-io+))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*query-io*)) (type (eql 'cl:variable)))
+  (cyclosis:make-synonym-stream '+terminal-io+))
 
-(defparameter *query-io* *debug-io*)
-
-(defmethod cyclosis:state-value ((client intrinsic-client) (aspect (eql 'cl:*standard-input*)))
-  *standard-input*)
-
-(defmethod cyclosis:state-value ((client intrinsic-client) (aspect (eql 'cl:*standard-output*)))
-  *standard-output*)
-
-(defmethod cyclosis:state-value ((client intrinsic-client) (aspect (eql 'cl:*error-output*)))
-  *error-output*)
-
-(defmethod cyclosis:state-value ((client intrinsic-client) (aspect (eql 'cl:*trace-output*)))
-  *trace-output*)
-
-(defmethod cyclosis:state-value ((client intrinsic-client) (aspect (eql 'cl:*terminal-io*)))
-  *terminal-io*)
-
-(defmethod cyclosis:state-value ((client intrinsic-client) (aspect (eql 'cl:*debug-io*)))
-  *debug-io*)
-
-(defmethod cyclosis:state-value ((client intrinsic-client) (aspect (eql 'cl:*query-io*)))
-  *query-io*)
-
-(defmethod cyclosis:state-value ((client intrinsic-client) (aspect (eql 'cl:format)))
-  #'format)
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*debug-io*)) (type (eql 'cl:variable)))
+  (cyclosis:make-synonym-stream '+terminal-io+))
 
 (defmethod cyclosis:whitespace-char-p ((client intrinsic-client) ch)
   #+ccl (ccl::whitespacep ch)
@@ -83,4 +73,4 @@
     (and (member ch '(#\tab #\newline #\linefeed #\page #\return #\space))
          t))
 
-(cyclosis:define-interface *client* :intrinsic t)
+(cyclosis:define-interface :client-class intrinsic-client :client-form *client* :intrinsic t)

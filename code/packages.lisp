@@ -21,9 +21,11 @@
            #:make-string-output-stream
            #:make-synonym-stream
            #:make-two-way-stream
+           #:open
            #:open-stream-p
            #:output-stream-p
            #:pathname
+           #:peek-char
            #:stream
            #:stream-element-type
            #:stream-external-format
@@ -34,7 +36,9 @@
            #:truename
            #:two-way-stream
            #:two-way-stream-input-stream
-           #:two-way-stream-output-stream)
+           #:two-way-stream-output-stream
+           #:y-or-n-p
+           #:yes-or-no-p)
   (:export #:*default-binary-external-format*
            #:*default-character-external-format*
            #:broadcast-stream
@@ -78,12 +82,12 @@
            #:make-synonym-stream
            #:make-transcoder
            #:make-two-way-stream
+           #:open
            #:open-stream-p
            #:output-stream-p
            #:pathname
            #:posix-file-stream
            #:read-element
-           #:state-value
            #:stream
            #:stream-advance-to-column
            #:stream-clear-input
@@ -128,4 +132,6 @@
            #:two-way-stream-output-stream
            #:unexpected-eof
            #:whitespace-char-p
-           #:write-element))
+           #:write-element
+           #:y-or-n-p
+           #:yes-or-no-p))

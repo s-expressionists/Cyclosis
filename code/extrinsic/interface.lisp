@@ -1,5 +1,7 @@
 (cl:in-package #:cyclosis-extrinsic)
 
+#+sbcl (declaim (sb-ext:muffle-conditions sb-c::&optional-and-&key-in-lambda-list))
+
 (defclass extrinsic-client ()
   ())
 
@@ -123,111 +125,76 @@
                        :target target)
         nil)))
 
-(defun replicate-stream (stream direction)
-  (etypecase stream
-    (cl:synonym-stream
-     (replicate-stream (symbol-value (cl:synonym-stream-symbol stream))
-                       direction))
-    (cl:two-way-stream
-     (ecase direction
-       (:input
-        (replicate-stream (cl:two-way-stream-input-stream stream)
-                          :input))
-       (:output
-        (replicate-stream (cl:two-way-stream-output-stream stream)
-                          :output))
-       (:io
-        (cyclosis:make-two-way-stream (replicate-stream (cl:two-way-stream-input-stream stream)
-                                                        :input)
-                                      (replicate-stream (cl:two-way-stream-output-stream stream)
-                                                        :output)))))
-    (cl:echo-stream
-     (ecase direction
-       (:input
-        (replicate-stream (cl:echo-stream-input-stream stream)
-                          :input))
-       (:output
-        (replicate-stream (cl:echo-stream-output-stream stream)
-                          :output))
-       (:io
-        (cyclosis:make-two-way-stream (replicate-stream (cl:echo-stream-input-stream stream)
-                                                        :input)
-                                      (replicate-stream (cl:echo-stream-output-stream stream)
-                                                        :output)))))
-    (cl:concatenated-stream
-     (ecase direction
-       (:input
-        (apply #'cyclosis:make-concatenated-stream
-               (mapcar (lambda (stream)
-                         (replicate-stream stream :input))
-                       (cl:concatenated-stream-streams stream))))))
-    (cl:broadcast-stream
-     (ecase direction
-       (:output
-        (apply #'cyclosis:make-broadcast-stream
-               (mapcar (lambda (stream)
-                         (replicate-stream stream :output))
-                       (cl:broadcast-stream-streams stream))))))
-    (cl:stream
-     (unless (or (and (eq direction :input)
-                      (cl:input-stream-p stream))
-                 (and (eq direction :output)
-                      (cl:output-stream-p stream))
-                 (and (eq direction :io)
-                      (cl:input-stream-p stream)
-                      (cl:output-stream-p stream)))
-       (error "Stream ~s does not support direction ~s." stream direction))
-     (make-instance 'extrinsic-file-stream :target stream))))
+(defgeneric replicate-stream (stream direction)
+  (:method ((stream cl:synonym-stream) direction)
+    (replicate-stream (symbol-value (cl:synonym-stream-symbol stream))
+                      direction))
+  (:method ((stream cl:two-way-stream) (direction (eql :input)))
+    (replicate-stream (cl:two-way-stream-input-stream stream) :input))
+  (:method ((stream cl:two-way-stream) (direction (eql :output)))
+    (replicate-stream (cl:two-way-stream-output-stream stream) :output))
+  (:method ((stream cl:two-way-stream) (direction (eql :io)))
+    (cyclosis:make-two-way-stream (replicate-stream (cl:two-way-stream-input-stream stream)
+                                                    :input)
+                                  (replicate-stream (cl:two-way-stream-output-stream stream)
+                                                    :output)))
+  (:method ((stream cl:echo-stream) (direction (eql :input)))
+    (replicate-stream (cl:echo-stream-input-stream stream) :input))
+  (:method ((stream cl:echo-stream) (direction (eql :output)))
+    (replicate-stream (cl:echo-stream-output-stream stream) :output))
+  (:method ((stream cl:echo-stream) (direction (eql :io)))
+    (cyclosis:make-echo-stream (replicate-stream (cl:echo-stream-input-stream stream)
+                                                 :input)
+                               (replicate-stream (cl:echo-stream-output-stream stream)
+                                                 :output)))
+  (:method ((stream cl:concatenated-stream) (direction (eql :input)))
+    (apply #'cyclosis:make-concatenated-stream
+           (mapcar (lambda (stream)
+                     (replicate-stream stream :input))
+                   (cl:concatenated-stream-streams stream))))
+  (:method ((stream cl:broadcast-stream) (direction (eql :output)))
+    (apply #'cyclosis:make-broadcast-stream
+           (mapcar (lambda (stream)
+                     (replicate-stream stream :output))
+                   (cl:broadcast-stream-streams stream))))
+  (:method ((stream cl:stream) direction)
+    (unless (or (and (eq direction :input)
+                     (cl:input-stream-p stream))
+                (and (eq direction :output)
+                     (cl:output-stream-p stream))
+                (and (eq direction :io)
+                     (cl:input-stream-p stream)
+                     (cl:output-stream-p stream)))
+      (error "Stream ~s does not support direction ~s." stream direction))
+    (make-instance 'extrinsic-file-stream :target stream)))
 
-(defparameter *standard-input* (replicate-stream cl:*standard-input* :input))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*standard-input*)) (type (eql 'cl:variable)))
+  (replicate-stream cl:*standard-input* :input))
 
-(defparameter *standard-output* (replicate-stream cl:*standard-output* :output))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*standard-output*)) (type (eql 'cl:variable)))
+  (replicate-stream cl:*standard-output* :output))
 
-(defparameter *error-output* (replicate-stream cl:*error-output* :output))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*error-output*)) (type (eql 'cl:variable)))
+  (replicate-stream cl:*error-output* :output))
 
-(defparameter *trace-output* (replicate-stream cl:*trace-output* :output))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*trace-output*)) (type (eql 'cl:variable)))
+  (replicate-stream cl:*trace-output* :output))
 
-(defparameter *terminal-io* (replicate-stream cl:*terminal-io* :io))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*terminal-io*)) (type (eql 'cl:variable)))
+  (replicate-stream cl:*terminal-io* :io))
 
-(defparameter *debug-io* (replicate-stream cl:*debug-io* :io))
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*query-io*)) (type (eql 'cl:variable)))
+  (replicate-stream cl:*query-io* :io))
 
-(defparameter *query-io* (replicate-stream cl:*query-io* :io))
-
-(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*standard-input*)))
-  *standard-input*)
-
-(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*standard-output*)))
-  *standard-output*)
-
-(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*error-output*)))
-  *error-output*)
-
-(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*trace-output*)))
-  *trace-output*)
-
-(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*terminal-io*)))
-  *terminal-io*)
-
-(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*debug-io*)))
-  *debug-io*)
-
-(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:*query-io*)))
-  *query-io*)
-
-(defun extrinsic-format (destination control-string &rest args)
-  (when (eq destination t)
-    (setf destination *standard-output*))
-  (cond ((or (null destination)
-             (stringp destination))
-         (apply 'format destination control-string args))
-        (t
-         ;; TODO: Need to preserve column and line length
-         (cyclosis:stream-write-string destination
-                                       (apply 'format nil control-string args))
-         nil)))
-
-(defmethod cyclosis:state-value ((client extrinsic-client) (aspect (eql 'cl:format)))
-  #'extrinsic-format)
+(defmethod trinsic:initial-cell-value
+    ((client extrinsic-client) (name (eql 'cl:*debug-io*)) (type (eql 'cl:variable)))
+  (replicate-stream cl:*debug-io* :io))
 
 (defmethod cyclosis:whitespace-char-p ((client extrinsic-client) ch)
   #+abcl (java:jcall "isWhitespace" *readtable* ch)
@@ -244,4 +211,20 @@
     (and (member ch '(#\tab #\newline #\linefeed #\page #\return #\space))
          t))
 
-(cyclosis:define-interface *client*)
+(cyclosis:define-interface :client-form *client* :client-class extrinsic-client)
+
+(defun extrinsic-format (destination control-string &rest args)
+  (when (eq destination t)
+    (setf destination *standard-output*))
+  (cond ((or (null destination)
+             (stringp destination))
+         (apply 'format destination control-string args))
+        (t
+         ;; TODO: Need to preserve column and line length
+         (cyclosis:stream-write-string destination
+                                       (apply 'format nil control-string args))
+         nil)))
+
+(defmethod trinsic:cell-value
+    ((client extrinsic-client) (name (eql 'cl:format)) (type (eql 'cl:function)))
+  #'extrinsic-format)

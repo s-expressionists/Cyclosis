@@ -1,5 +1,7 @@
 (in-package #:cyclosis)
 
+#+sbcl (require :sb-posix)
+
 ;; TWB: This came from Mezzano. This isn't implemented like this in
 ;; other implementations, so I am removing them for now.
 #+(or)(defun listen-byte (&optional input-stream)
@@ -276,3 +278,106 @@
 
 (defmethod stream-file-string-length ((stream octet-mixin) string)
   (encoded-length (octet-transcoder stream) string))
+
+(defun open
+    (client filespec direction element-type  if-exists if-exists-p if-does-not-exist
+     if-does-not-exist-p external-format)
+  (check-type direction (member :input :output :io :probe))
+  (check-type if-exists (member :error :new-version :rename :rename-and-delete
+                                :overwrite :append :supersede nil))
+  (check-type if-does-not-exist (member :error :create nil))
+  (let ((path (translate-logical-pathname (merge-pathnames (pathname filespec)))))
+    (when (wild-pathname-p path)
+      (error 'file-error :pathname path))
+    (unless if-exists-p
+      (setf if-exists (if (eql (pathname-version path) :newest)
+                          :new-version
+                          :error)))
+    (when (eq direction :probe)
+      (setf if-exists nil))
+    (unless if-does-not-exist-p
+      (cond ((or (eql direction :input)
+                 (eql if-exists :overwrite)
+                 (eql if-exists :append))
+             (setf if-does-not-exist :error))
+            ((or (eql direction :output)
+                 (eql direction :io))
+             (setf if-does-not-exist :create))
+            ((eql direction :probe)
+             (setf if-does-not-exist nil))))
+    (make-file-stream client path direction
+                      if-exists if-does-not-exist
+                      element-type external-format)))
+
+(defun peek-char (client peek-type stream eof-error-p eof-value recursive-p)
+  (declare (ignore recursive-p))
+  (check-type peek-type (or (eql t) (eql nil) character))
+  (prog ((s (coerce-input-stream client stream))
+         ch)
+   repeat
+     (setf ch (stream-peek-char s))
+     (when (eq ch :eof)
+       (when eof-error-p
+         (error 'end-of-file :stream s))
+       (return eof-value))
+     (when (and peek-type
+                (or (and (eq peek-type t)
+                         (whitespace-char-p client ch))
+                    (and (not (eq peek-type t))
+                         (char/= peek-type ch))))
+       (stream-read-char s)
+       (go repeat))
+     (return ch)))
+
+(defun y-or-n-p (client control arguments)
+  (let ((query-io (trinsic:cell-value client 'cl:*query-io* 'cl:variable)))
+    (when control
+      (stream-fresh-line query-io)
+      (apply (trinsic:cell-value client 'cl:format 'cl:function)
+             query-io control arguments)
+      (stream-write-char query-io #\Space))
+    (stream-write-string query-io "(Y or N) ")
+    (stream-finish-output query-io)
+    (loop
+      (stream-clear-input query-io)
+      (let ((c (stream-read-char query-io)))
+        (when (char-equal c #\Y)
+          (return t))
+        (when (char-equal c #\N)
+          (return nil)))
+      (stream-fresh-line query-io)
+      (stream-write-string query-io "Please respond with \"y\" or \"n\". "))))
+
+(defun y-or-n-p/compiler-macro (client whole control arguments)
+  (if (stringp control)
+      `(y-or-n-p ,(trinsic:client-form client)
+                 ,(funcall (trinsic:cell-value client 'cl:formatter 'cl:function) control)
+                 ,@arguments)
+      whole))
+
+(defun yes-or-no-p (client control arguments)
+  (let ((query-io (trinsic:cell-value client 'cl:*query-io* 'cl:variable)))
+    (when control
+      (stream-fresh-line query-io)
+      (apply (trinsic:cell-value client 'cl:format 'cl:function)
+             query-io control arguments)
+      (stream-write-char query-io #\Space))
+    (stream-write-string query-io "(Yes or No) ")
+    (stream-finish-output query-io)
+    (loop
+      (stream-clear-input query-io)
+      (let ((line (stream-read-line query-io)))
+        (when (string-equal line "yes")
+          (return t))
+        (when (string-equal line "no")
+          (return nil)))
+      (stream-fresh-line query-io)
+      (stream-write-string query-io "Please respond with \"yes\" or \"no\". ")
+      (stream-finish-output query-io))))
+
+(defun yes-or-no-p/compiler-macro (client whole control arguments)
+  (if (stringp control)
+      `(yes-or-no-p ,(trinsic:client-form client)
+                    ,(funcall (trinsic:cell-value client 'cl:formatter 'cl:function) control)
+                    ,@arguments)
+      whole))

@@ -1,7 +1,8 @@
 (cl:in-package #:asdf-user)
 
 (defsystem "cyclosis"
-  :depends-on ("alexandria")
+  :depends-on ("alexandria"
+               "trinsic")
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")
