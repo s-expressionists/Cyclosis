@@ -11,7 +11,6 @@
            #:echo-stream-input-stream
            #:echo-stream-output-stream
            #:file-stream
-           #:get-output-stream-string
            #:input-stream-p
            #:interactive-stream-p
            #:open
@@ -62,7 +61,6 @@
            #:fundamental-input-stream
            #:fundamental-output-stream
            #:fundamental-stream
-           #:get-output-stream-string
            #:illegal-sequence
            #:input-stream-p
            #:interactive-stream-p

@@ -2,10 +2,8 @@
 
 ;;; Broadcast stream.
 
-(defclass broadcast-stream (fundamental-output-stream)
-  ((%streams :reader broadcast-stream-streams
-             :initarg :streams
-             :type list))
+(defclass broadcast-stream (fundamental-output-stream stream-output-streams-mixin)
+  ()
   (:documentation "A broadcast stream is an output stream which has associated with it a set of
 zero or more output streams such that any output sent to the broadcast stream gets passed on as
 output to each of the associated output streams. (If a broadcast stream has no component
@@ -13,18 +11,18 @@ streams, then all output to the broadcast stream is discarded.)"))
 
 (defmethod initialize-instance :after ((instance broadcast-stream) &rest initargs &key)
   (declare (ignore initargs))
-  (mapc #'check-output-stream (broadcast-stream-streams instance)))
+  (mapc #'check-output-stream (stream-output-streams instance)))
 
 (defmacro broadcast-stream-op ((substream broadcast-stream default) &body body)
   `(loop with result = ,default
-         for ,substream in (broadcast-stream-streams ,broadcast-stream)
+         for ,substream in (stream-output-streams ,broadcast-stream)
          finally (return result)
          do (setf result (progn ,@body))))
 
 (defmacro broadcast-last-stream-op ((substream broadcast-stream default) &body body)
-  `(if (null (broadcast-stream-streams ,broadcast-stream))
+  `(if (null (stream-output-streams ,broadcast-stream))
        ,default
-       (let ((,substream (car (last (broadcast-stream-streams ,broadcast-stream)))))
+       (let ((,substream (car (last (stream-output-streams ,broadcast-stream)))))
          ,@body)))
 
 (defmethod stream-write-char ((stream broadcast-stream) character)

@@ -9,14 +9,19 @@
            #:*standard-output*
            #:*terminal-io*
            #:*trace-output*
+           #:broadcast-stream-streams
            #:clear-input
            #:clear-output
+           #:concatenated-stream-streams
+           #:echo-stream-input-stream
+           #:echo-stream-output-stream
            #:file-length
            #:file-position
            #:file-string-length
            #:finish-output
            #:force-output
            #:fresh-line
+           #:get-output-stream-string
            #:listen
            #:make-broadcast-stream
            #:make-concatenated-stream
@@ -32,7 +37,10 @@
            #:read-char-no-hang
            #:read-line
            #:read-sequence
+           #:synonym-stream-symbol
            #:terpri
+           #:two-way-stream-input-stream
+           #:two-way-stream-output-stream
            #:unread-char
            #:with-input-from-string
            #:with-open-file

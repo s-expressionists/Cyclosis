@@ -2,28 +2,27 @@
 
 ;;; Synonym stream.
 
-(defclass synonym-stream (fundamental-stream)
-  ((%symbol :reader synonym-stream-symbol
-            :accessor %symbol
-            :initarg :symbol
-            :type symbol)))
-
-(defmethod initialize-instance :after ((instance synonym-stream) &rest initargs &key)
-  (declare (ignore initargs))
-  (check-type (%symbol instance) symbol))
+(defclass synonym-stream (fundamental-stream stream-symbol-mixin)
+  ())
 
 (defmethod print-object ((object synonym-stream) stream)
   (print-unreadable-object (object stream :type t)
-    (format stream "for ~S" (synonym-stream-symbol object))))
+    (format stream "for ~S" (stream-symbol object))))
 
 (defun follow-synonym-stream (stream)
-  (symbol-value (synonym-stream-symbol stream)))
+  (symbol-value (stream-symbol stream)))
 
 (defmethod stream-element-type ((stream synonym-stream))
   (stream-element-type (follow-synonym-stream stream)))
 
+(defmethod (setf stream-element-type) (new-value (stream synonym-stream))
+  (setf (stream-element-type (follow-synonym-stream stream)) new-value))
+
 (defmethod stream-external-format ((stream synonym-stream))
   (stream-external-format (follow-synonym-stream stream)))
+
+(defmethod (setf stream-external-format) (new-value (stream synonym-stream))
+  (setf (stream-external-format (follow-synonym-stream stream)) new-value))
 
 (defmethod close ((stream synonym-stream) &key abort)
   (close (follow-synonym-stream stream) :abort abort))

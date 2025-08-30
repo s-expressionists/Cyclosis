@@ -2,12 +2,9 @@
 
 ;;; Concatenated stream.
 
-(defclass concatenated-stream (character-input-mixin
-                               fundamental-character-input-stream)
-  ((streams :reader concatenated-stream-streams
-            :accessor %streams
-            :initarg :streams
-            :type list))
+(defclass concatenated-stream
+    (character-input-mixin fundamental-character-input-stream stream-input-streams-mixin)
+  ()
   (:documentation "A concatenated stream is an input stream which is a composite stream of zero
 or more other input streams, such that the sequence of data which can be read from the
 concatenated stream is the same as the concatenation of the sequences of data which could be
@@ -15,89 +12,106 @@ read from each of the constituent streams."))
 
 (defmethod initialize-instance :after ((instance concatenated-stream) &rest initargs &key)
   (declare (ignore initargs))
-  (mapc #'check-input-stream (concatenated-stream-streams instance)))
+  (mapc #'check-input-stream (stream-input-streams instance)))
 
-(defmethod stream-element-type ((stream concatenated-stream))
-  (if (concatenated-stream-streams stream)
-      (stream-element-type (first (concatenated-stream-streams stream)))
-      nil))
+(defmacro concatenated-stream-read-element (stream method)
+  `(with-accessors ((streams stream-input-streams))
+       ,stream
+     (prog ((el nil))
+      next-stream
+        (cond ((endp streams)
+               (return :eof))
+              ((eq :eof (setf el (,method (first streams))))
+               ;; Reached end of this stream. Pop streams.
+               (pop streams)
+               (go next-stream))
+              (t
+               (return el))))))
 
-(defmethod stream-read-sequence
-    ((stream concatenated-stream) seq &optional (start 0) end)
-  (setf end (or end (length seq)))
-  (with-accessors ((streams %streams))
-      stream
-    (loop
-      (when (>= start end)
-        (return end))
-      (when (endp streams)
-        (return start))
-      (let ((next (stream-read-sequence (first streams)
-                                        seq start end)))
-        (when (eql next start)
-          ;; Reached end of this stream. Pop streams.
-          (pop streams))
-        (setf start next)))))
+(defmacro concatenated-stream-call-method (stream method fallback &rest args)
+  (let ((streams-var (gensym "STREAMS")))
+    `(let ((,streams-var (stream-input-streams ,stream)))
+       (if ,streams-var
+           (,method (car ,streams-var) ,@args)
+           ,fallback))))
+
+(defmacro concatenated-stream-setf (stream method new-value &rest args)
+  (let ((streams-var (gensym "STREAMS")))
+    `(let ((,streams-var (stream-input-streams ,stream)))
+       (if ,streams-var
+           (setf (,method (car ,streams-var) ,@args) ,new-value)
+           ,new-value))))
 
 (defmethod stream-read-byte ((stream concatenated-stream))
-  (loop
-     (when (endp (concatenated-stream-streams stream))
-       (return :eof))
-     (let ((ch (stream-read-byte (first (concatenated-stream-streams stream)))))
-       (when (not (eql ch :eof))
-         (return ch))
-       ;; Reached end of this stream. Pop streams.
-       (pop (%streams stream)))))
+  (concatenated-stream-read-element stream stream-read-byte))
 
 (defmethod stream-read-char ((stream concatenated-stream))
-  (loop
-     (when (endp (concatenated-stream-streams stream))
-       (return :eof))
-     (let ((ch (stream-read-char (first (concatenated-stream-streams stream)))))
-       (when (not (eql ch :eof))
-         (return ch))
-       ;; Reached end of this stream. Pop streams.
-       (pop (%streams stream)))))
+  (concatenated-stream-read-element stream stream-read-char))
 
 (defmethod stream-read-char-no-hang ((stream concatenated-stream))
-  (loop
-     (when (endp (concatenated-stream-streams stream))
-       (return :eof))
-     (let ((ch (stream-read-char-no-hang (first (concatenated-stream-streams stream)))))
-       (when (not (eql ch :eof))
-         (return ch))
-       ;; Reached end of this stream. Pop streams.
-       (pop (%streams stream)))))
+  (concatenated-stream-read-element stream stream-read-char-no-hang))
+
+(defmethod stream-peek-char ((stream concatenated-stream))
+  (concatenated-stream-read-element stream stream-peek-char))
 
 (defmethod stream-listen ((stream concatenated-stream))
   ;; Built on top of READ-CHAR-NO-HANG because LISTEN cannot distinguish
   ;; between blocking & EOF.
-  (loop
-     (when (endp (concatenated-stream-streams stream))
-       (return nil))
-     (let ((ch (stream-read-char-no-hang (first (concatenated-stream-streams stream)))))
-       (case ch
-         (:eof
-          ;; Reached end of this stream. Pop streams.
-          (pop (%streams stream)))
-         (nil
-          (return nil))
-         (t
-          (stream-unread-char (first (concatenated-stream-streams stream)) ch)
-          (return t))))))
+  (with-accessors ((streams stream-input-streams))
+      stream
+    (prog ((ch nil))
+     next-stream
+       (cond ((endp streams)
+              (return nil))
+             ((eq :eof (setf ch (stream-read-char-no-hang (first streams))))
+              ;; Reached end of this stream. Pop streams.
+              (pop streams)
+              (go next-stream))
+             (ch
+              (stream-unread-char (first streams) ch)
+              (return t))
+             (t
+              (return nil))))))
 
 (defmethod stream-clear-input ((stream concatenated-stream))
-  (if (concatenated-stream-streams stream)
-      (stream-clear-input (first (concatenated-stream-streams stream)))
-      nil))
+  (concatenated-stream-call-method stream stream-clear-input nil))
 
-(defmethod stream-peek-char ((stream concatenated-stream))
-  (with-accessors ((streams %streams))
+(defmethod stream-element-type ((stream concatenated-stream))
+  (concatenated-stream-call-method stream stream-element-type nil))
+
+(defmethod (setf stream-element-type) (new-value (stream concatenated-stream))
+  (with-accessors ((streams stream-input-streams))
       stream
-    (loop (when (endp streams)
-            (return :eof))
-          (let ((ch (stream-peek-char (first streams))))
-            (when (not (eql ch :eof))
-              (return ch))
-            ;; Reached end of this stream. Pop streams.
-            (pop streams)))))
+    (when streams
+      (setf (stream-element-type (first streams)) new-value))
+    new-value))
+
+(defmethod stream-external-format ((stream concatenated-stream))
+  (concatenated-stream-call-method stream stream-external-format nil))
+
+(defmethod (setf stream-external-format) (new-value (stream concatenated-stream))
+  (with-accessors ((streams stream-input-streams))
+      stream
+    (when streams
+      (setf (stream-external-format (first streams)) new-value))
+    new-value))
+
+(defmethod stream-read-sequence ((stream concatenated-stream) seq &optional (start 0) end)
+  (setf end (or end (length seq)))
+  (with-accessors ((streams stream-input-streams))
+      stream
+    (prog ((next start))
+     next
+       (when (>= start end)
+         (return end))
+       (when (endp streams)
+         (return start))
+       (when (eql start (setf next (stream-read-sequence (first streams)
+                                                         seq start end)))
+         ;; Reached end of this stream. Pop streams.
+         (pop streams))
+       (setf start next)
+       (go next))))
+
+(defmethod interactive-stream-p ((stream concatenated-stream))
+  (concatenated-stream-call-method stream interactive-stream-p nil))

@@ -202,6 +202,26 @@ subtype of unsigned-byte or signed-byte."))
     (error "Unable to find transcoder for element-type ~s and external-format ~s"
            element-type external-format)))
 
+(defgeneric stream-input-stream (stream))
+
+(defgeneric (setf stream-input-stream) (new-value stream))
+
+(defgeneric stream-output-stream (stream))
+
+(defgeneric (setf stream-output-stream) (new-value stream))
+
+(defgeneric stream-input-streams (stream))
+
+(defgeneric (setf stream-input-streams) (new-value stream))
+
+(defgeneric stream-output-streams (stream))
+
+(defgeneric (setf stream-output-streams) (new-value stream))
+
+(defgeneric stream-symbol (stream))
+
+(defgeneric (setf stream-symbol) (new-value stream))
+
 (defun check-stream (object)
   (unless (streamp object)
     (error 'type-error :datum object :expected-type '(satisfies streamp))))
@@ -227,7 +247,7 @@ subtype of unsigned-byte or signed-byte."))
   ;; character stream.
   (unless (or (subtypep (stream-element-type object) 'character)
               (and (typep object 'broadcast-stream)
-                   (null (broadcast-stream-streams object))))
+                   (null (stream-output-streams object))))
     (error 'stream-error :stream object)))
 
 (defun check-binary-stream (object)
@@ -339,15 +359,10 @@ subtype of unsigned-byte or signed-byte."))
      (yes-or-no-p-sym cl:yes-or-no-p))
   (let* ((intrinsic-pkg (if intrinsicp (find-package '#:common-lisp) *package*))
          (symbols '(broadcast-stream
-                    broadcast-stream-streams
                     close
                     concatenated-stream
-                    concatenated-stream-streams
                     echo-stream
-                    echo-stream-input-stream
-                    echo-stream-output-stream
                     file-stream
-                    get-output-stream-string
                     input-stream-p
                     interactive-stream-p
                     open-stream-p
@@ -359,11 +374,8 @@ subtype of unsigned-byte or signed-byte."))
                     streamp
                     string-stream
                     synonym-stream
-                    synonym-stream-symbol
                     truename
-                    two-way-stream
-                    two-way-stream-input-stream
-                    two-way-stream-output-stream)))
+                    two-way-stream)))
     `((locally
           (declare (special ,standard-input-sym
                             ,standard-output-sym
@@ -401,12 +413,25 @@ subtype of unsigned-byte or signed-byte."))
       (defun ,make-broadcast-stream-sym (&rest output-streams)
         "Returns a broadcast stream that has the indicated output-streams initially associated
 with it."
-        (make-instance 'broadcast-stream :streams output-streams))
+        (make-instance 'broadcast-stream :output-streams output-streams))
+
+      (defun ,broadcast-stream-streams-sym (broadcast-stream)
+        "Returns a list of output streams that constitute all the streams to which the
+broadcast-stream is broadcasting."
+        (check-type broadcast-stream broadcast-stream)
+        (stream-output-streams broadcast-stream))
 
       (defun ,make-concatenated-stream-sym (&rest input-streams)
         "Returns a concatenated stream that has the indicated input-streams initially
 associated with it."
-        (make-instance 'concatenated-stream :streams input-streams))
+        (make-instance 'concatenated-stream :input-streams input-streams))
+
+      (defun ,concatenated-stream-streams-sym (concatenated-stream)
+        "Returns a list of input streams that constitute the ordered set of streams the
+concatenated-stream still has to read from, starting with the current one it is reading
+from. The list may be empty if no more streams remain to be read."
+        (check-type concatenated-stream concatenated-stream)
+        (stream-input-streams concatenated-stream))
 
       (defun ,make-echo-stream-sym (input-stream output-stream)
         "Creates and returns an echo stream that takes input from input-stream and sends output
@@ -415,26 +440,40 @@ to output-stream."
                        :input-stream input-stream
                        :output-stream output-stream))
 
+      (defun ,echo-stream-input-stream-sym (echo-stream)
+        "Returns the input stream from which echo-stream receives input."
+        (check-type echo-stream echo-stream)
+        (stream-input-stream echo-stream))
+
+      (defun ,echo-stream-output-stream-sym (echo-stream)
+        "Returns the output stream from which echo-stream sends output."
+        (check-type echo-stream echo-stream)
+        (stream-output-stream echo-stream))
+
       (defun ,make-string-input-stream-sym (string &optional (start 0) end)
         "Returns an input string stream. This stream will supply, in order, the characters in
 the substring of string bounded by start and end. After the last character has been supplied,
 the string stream will then be at end of file."
         (make-instance 'string-input-stream
-                       :string string
+                       :buffer string
                        :start start
-                       :position start
-                       :end (or end (length string))))
+                       :end end))
 
       (defun ,make-string-output-stream-sym (&key (element-type 'character))
         "Returns an output string stream that accepts characters and makes available (via
 get-output-stream-string) a string that contains the characters that were actually output."
         (make-instance 'string-output-stream
-                       :string (make-array 8 :element-type element-type
+                       :buffer (make-array 8 :element-type element-type
                                              :fill-pointer 0 :adjustable t)))
 
       (defun ,make-synonym-stream-sym (symbol)
         "Returns a synonym stream whose synonym stream symbol is symbol."
         (make-instance 'synonym-stream :symbol symbol))
+
+      (defun ,synonym-stream-symbol-sym (synonym-stream)
+        "Returns the symbol whose symbol-value the synonym-stream is using."
+        (check-type synonym-stream synonym-stream)
+        (stream-symbol synonym-stream))
 
       (defun ,make-two-way-stream-sym (input-stream output-stream)
         "Returns a two-way stream that gets its input from input-stream and sends its output to
@@ -442,6 +481,16 @@ output-stream."
         (make-instance 'two-way-stream
                        :input-stream input-stream
                        :output-stream output-stream))
+
+      (defun ,two-way-stream-input-stream-sym (two-way-stream)
+        "Returns the input stream from which two-way-stream receives input."
+        (check-type two-way-stream two-way-stream)
+        (stream-input-stream two-way-stream))
+
+      (defun ,two-way-stream-output-stream-sym (two-way-stream)
+        "Returns the output stream from which two-way-stream sends output."
+        (check-type two-way-stream two-way-stream)
+        (stream-output-stream two-way-stream))
 
       (defun ,open-sym
           (filespec
@@ -462,6 +511,15 @@ output-stream."
       (defmacro ,with-output-to-string-sym
           ((var &optional string-form &key (element-type ''character)) &body body)
         (expand-with-output-to-string var string-form element-type body))
+
+      (defun ,get-output-stream-string-sym (string-output-stream)
+        (check-type string-output-stream string-output-stream)
+        (with-accessors ((buffer buffer))
+            string-output-stream
+          (prog1
+              (copy-seq buffer)
+            (reset-cursor (output-cursor string-output-stream))
+            (setf (fill-pointer buffer) 0))))
 
       (defun ,read-byte-sym (stream &optional (eof-error-p t) eof-value)
         (check-input-stream stream)

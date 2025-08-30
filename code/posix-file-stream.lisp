@@ -81,7 +81,6 @@
       (sb-posix:lseek (descriptor stream) current sb-posix:seek-set))))
 
 (defmethod close ((stream posix-file-stream) &key abort)
-  (declare (ignore abort))
   (when (stream-open-p stream)
     (when (and (close-descriptorp stream)
                (not (minusp (descriptor stream))))
@@ -111,7 +110,7 @@
           return new-path))
 
 #+sbcl
-(defmethod cyclosis:make-file-stream
+(defmethod make-file-stream
     (client path direction if-exists if-does-not-exist element-type external-format)
   (declare (ignore client))
   (let* ((mode (logior sb-posix:s-irusr sb-posix:s-iwusr
