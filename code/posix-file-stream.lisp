@@ -8,34 +8,34 @@
                              fundamental-character-output-stream
                              fundamental-binary-input-stream
                              fundamental-binary-output-stream)
-  ((descriptor :accessor descriptor
-               :initform -1
-               :initarg :descriptor
-               :type fixnum)
-   (close-descriptor :reader close-descriptorp
-                     :initform t
-                     :initarg :close-descriptor
-                     :type boolean)
-   (input :reader input-stream-p
-          :initform nil
-          :initarg :input
-          :type boolean)
-   (output :reader output-stream-p
+  ((%descriptor :accessor descriptor
+                :initform -1
+                :initarg :descriptor
+                :type fixnum)
+   (%close-descriptor :reader close-descriptorp
+                      :initform t
+                      :initarg :close-descriptor
+                      :type boolean)
+   (%input :reader input-stream-p
            :initform nil
-           :initarg :output
+           :initarg :input
            :type boolean)
+   (%output :reader output-stream-p
+            :initform nil
+            :initarg :output
+            :type boolean)
    (%pathname :reader pathname
               :initform nil
               :initarg :pathname
               :type (or null pathname))
-   (temp-pathname :accessor temp-pathname
-                  :initform nil
-                  :initarg :temp-pathname
-                  :type (or null pathname))
-   (created :accessor created
-            :initform nil
-            :initarg :created
-            :type boolean)))
+   (%temp-pathname :accessor temp-pathname
+                   :initform nil
+                   :initarg :temp-pathname
+                   :type (or null pathname))
+   (%created :accessor created
+             :initform nil
+             :initarg :created
+             :type boolean)))
 
 (defmethod truename ((stream posix-file-stream))
   (let ((path (or (temp-pathname stream) (pathname stream))))
@@ -59,16 +59,18 @@
   #+sicl (sicl-posix-high:write (descriptor stream)
                                 octets :start start :end (or end (length octets))))
 
-(defmethod stream-file-position ((stream posix-file-stream) &optional position)
+(defmethod stream-file-position ((stream posix-file-stream))
+  #+sbcl
+  (/ (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-cur)
+     (element-length (octet-transcoder stream))))
+
+(defmethod (setf stream-file-position) (position (stream posix-file-stream))
   #+sbcl
   (case position
     (:start
      (and (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-set) t))
     (:end
      (and (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-end) t))
-    ((nil)
-     (/ (sb-posix:lseek (descriptor stream) 0 sb-posix:seek-cur)
-        (element-length (octet-transcoder stream))))
     (otherwise
      (and (sb-posix:lseek (descriptor stream) position sb-posix:seek-set) t))))
 
@@ -185,5 +187,5 @@
     (cond ((eq direction :probe)
            (close stream))
           (appending
-           (stream-file-position stream :end)))
+           (setf (stream-file-position stream) :end)))
     stream))

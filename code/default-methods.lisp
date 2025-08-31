@@ -196,8 +196,7 @@
 (defmethod stream-file-length (stream)
   (error 'type-error :datum stream :expected-type 'file-stream))
 
-(defmethod stream-file-position ((stream fundamental-stream) &optional position-spec)
-  (declare (ignore position-spec))
+(defmethod stream-file-position ((stream fundamental-stream))
   nil)
 
 (let ((func #'cl:pathname))

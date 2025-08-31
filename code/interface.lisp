@@ -136,7 +136,9 @@ subtype of unsigned-byte or signed-byte."))
 
 ;;; Generic support for other CL stream functions
 
-(defgeneric stream-file-position (stream &optional position-spec))
+(defgeneric stream-file-position (stream))
+
+(defgeneric (setf stream-file-position) (new-value stream))
 
 (defgeneric stream-file-length (stream))
 
@@ -221,6 +223,18 @@ subtype of unsigned-byte or signed-byte."))
 (defgeneric stream-symbol (stream))
 
 (defgeneric (setf stream-symbol) (new-value stream))
+
+(defgeneric stream-string (stream))
+
+(defgeneric (setf stream-string) (new-value stream))
+
+(defgeneric stream-file-start (stream))
+
+(defgeneric (setf stream-file-start) (new-value stream))
+
+(defgeneric stream-file-end (stream))
+
+(defgeneric (setf stream-file-end) (new-value stream))
 
 (defun check-stream (object)
   (unless (streamp object)
@@ -455,7 +469,7 @@ to output-stream."
 the substring of string bounded by start and end. After the last character has been supplied,
 the string stream will then be at end of file."
         (make-instance 'string-input-stream
-                       :buffer string
+                       :string string
                        :start start
                        :end end))
 
@@ -463,7 +477,7 @@ the string stream will then be at end of file."
         "Returns an output string stream that accepts characters and makes available (via
 get-output-stream-string) a string that contains the characters that were actually output."
         (make-instance 'string-output-stream
-                       :buffer (make-array 8 :element-type element-type
+                       :string (make-array 8 :element-type element-type
                                              :fill-pointer 0 :adjustable t)))
 
       (defun ,make-synonym-stream-sym (symbol)
@@ -514,12 +528,12 @@ output-stream."
 
       (defun ,get-output-stream-string-sym (string-output-stream)
         (check-type string-output-stream string-output-stream)
-        (with-accessors ((buffer buffer))
+        (with-accessors ((string stream-string))
             string-output-stream
           (prog1
-              (copy-seq buffer)
+              (copy-seq string)
             (reset-cursor (output-cursor string-output-stream))
-            (setf (fill-pointer buffer) 0))))
+            (setf (fill-pointer string) 0))))
 
       (defun ,read-byte-sym (stream &optional (eof-error-p t) eof-value)
         (check-input-stream stream)
@@ -552,7 +566,14 @@ output-stream."
         (check-stream stream)
         (cond (position-spec-p
                (check-type position-spec (or (integer 0) (member :start :end)))
-               (stream-file-position stream position-spec))
+               (handler-case
+                   (setf (stream-file-position stream) position-spec)
+                 (stream-error (condition)
+                   (declare (ignore condition))
+                   nil)
+                 (:no-error (result)
+                   (declare (ignore result))
+                   t)))
               (t
                (stream-file-position stream))))
 

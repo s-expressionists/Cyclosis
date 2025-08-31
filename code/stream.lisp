@@ -430,3 +430,12 @@
 (defmethod initialize-instance :after ((instance stream-symbol-mixin) &rest initargs &key)
   (declare (ignore initargs))
   (check-type (stream-symbol instance) symbol))
+
+(defclass stream-string-mixin ()
+  ((%string :accessor stream-string
+            :initarg :string
+            :type string)))
+
+(defmethod initialize-instance :after ((instance stream-string-mixin) &rest initargs &key)
+  (declare (ignore initargs))
+  (check-type (stream-string instance) string))

@@ -86,11 +86,13 @@
 (defmethod cyclosis:stream-file-length ((stream extrinsic-file-stream))
   (cl:file-length (target stream)))
 
-(defmethod cyclosis:stream-file-position
-    ((stream extrinsic-file-stream) &optional position)
-  (if position
-      (cl:file-position (target stream) position)
-      (cl:file-position (target stream))))
+(defmethod cyclosis:stream-file-position ((stream extrinsic-file-stream))
+  (cl:file-position (target stream)))
+
+(defmethod (setf cyclosis:stream-file-position) (new-value (stream extrinsic-file-stream))
+  (if (cl:file-position (target stream) new-value)
+      new-value
+      (error 'stream-error :stream stream)))
 
 (defmethod cyclosis:stream-file-string-length ((stream extrinsic-file-stream) object)
   (cl:file-string-length (target stream) object))

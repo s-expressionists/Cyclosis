@@ -54,13 +54,9 @@ streams, then all output to the broadcast stream is discarded.)"))
   (broadcast-last-stream-op (substream stream 1)
     (stream-file-string-length substream string)))
 
-(defmethod stream-file-position
-    ((stream broadcast-stream) &optional (position-spec nil position-spec-p))
-  (if position-spec-p
-      (broadcast-last-stream-op (substream stream nil)
-        (stream-file-position substream position-spec))
-      (broadcast-last-stream-op (substream stream 0)
-        (stream-file-position substream))))
+(defmethod stream-file-position ((stream broadcast-stream))
+  (broadcast-last-stream-op (substream stream 0)
+    (stream-file-position substream)))
 
 (defmethod stream-line-column ((stream broadcast-stream))
   (broadcast-last-stream-op (substream stream nil)

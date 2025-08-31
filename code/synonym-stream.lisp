@@ -39,11 +39,11 @@
 (defmethod interactive-stream-p ((stream synonym-stream))
   (interactive-stream-p (follow-synonym-stream stream)))
 
-(defmethod stream-file-position
-    ((stream synonym-stream) &optional (position-spec nil position-spec-p))
-  (if position-spec-p
-      (stream-file-position (follow-synonym-stream stream) position-spec)
-      (stream-file-position (follow-synonym-stream stream))))
+(defmethod stream-file-position ((stream synonym-stream))
+  (stream-file-position (follow-synonym-stream stream)))
+
+(defmethod (setf stream-file-position) (position-spec (stream synonym-stream))
+  (setf (stream-file-position (follow-synonym-stream stream)) position-spec))
 
 (defmethod stream-file-length ((stream synonym-stream))
   (stream-file-length (follow-synonym-stream stream)))
