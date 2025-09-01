@@ -1,9 +1,16 @@
 (cl:in-package #:cyclosis)
 
-(defclass string-stream (stream stream-string-mixin)
-  ((%position :accessor stream-file-position
+(defclass string-stream (stream)
+  ((%string :accessor stream-string
+            :initarg :string
+            :type string)
+   (%position :accessor stream-file-position
               :initarg :position
               :initform nil)))
+
+(defmethod initialize-instance :after ((instance string-stream) &rest initargs &key)
+  (declare (ignore initargs))
+  (check-type (stream-string instance) string))
 
 ;;; String output stream and with-output-to-string.
 

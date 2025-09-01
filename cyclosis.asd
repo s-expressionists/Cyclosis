@@ -12,10 +12,10 @@
                              (:file "stream")
                              (:file "broadcast-stream")
                              (:file "concatenated-stream")
-                             (:file "echo-stream")
                              (:file "string-stream")
                              (:file "synonym-stream")
                              (:file "two-way-stream")
+                             (:file "echo-stream")
                              (:file "posix-file-stream")
                              (:module "transcode"
                               :serial t

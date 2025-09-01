@@ -2,9 +2,10 @@
 
 ;;; Concatenated stream.
 
-(defclass concatenated-stream
-    (character-input-mixin fundamental-character-input-stream stream-input-streams-mixin)
-  ()
+(defclass concatenated-stream (character-input-mixin fundamental-character-input-stream)
+  ((%input-streams :accessor stream-input-streams
+                   :initarg :input-streams
+                   :type list))
   (:documentation "A concatenated stream is an input stream which is a composite stream of zero
 or more other input streams, such that the sequence of data which can be read from the
 concatenated stream is the same as the concatenation of the sequences of data which could be

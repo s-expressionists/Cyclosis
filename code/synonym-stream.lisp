@@ -2,8 +2,14 @@
 
 ;;; Synonym stream.
 
-(defclass synonym-stream (fundamental-stream stream-symbol-mixin)
-  ())
+(defclass synonym-stream (fundamental-stream)
+  ((%symbol :accessor stream-symbol
+            :initarg :symbol
+            :type symbol)))
+
+(defmethod initialize-instance :after ((instance synonym-stream) &rest initargs &key)
+  (declare (ignore initargs))
+  (check-type (stream-symbol instance) symbol))
 
 (defmethod print-object ((object synonym-stream) stream)
   (print-unreadable-object (object stream :type t)
