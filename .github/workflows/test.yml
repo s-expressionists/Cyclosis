@@ -32,4 +32,4 @@ jobs:
         asdf-add
     - name: Run ANSI Tests
       run: |
-        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :cyclosis-extrinsic/test)" -e "(cyclosis-extrinsic/test:test :exit t)"
+        lisp -i ${{ matrix.lisp }} -e "(asdf:load-system :cyclosis-extrinsic/test)" -e "(cyclosis-extrinsic/test:test :exit t)"
