@@ -28,35 +28,37 @@
                  :element-type 'character))
 
 (defparameter +terminal-io+
-  (cyclosis:make-two-way-stream +standard-input+ +standard-output+))
+  (make-instance 'cyclosis:two-way-stream
+                 :input-stream +standard-input+
+                 :output-stream +standard-output+))
 
 (defmethod trinsic:initial-cell-value
     ((client extrinsic-client) (name (eql 'cl:*standard-input*)) (type (eql 'cl:variable)))
-  (cyclosis:make-synonym-stream '+standard-input+))
+  (make-instance 'cyclosis:synonym-stream :symbol '+standard-input+))
 
 (defmethod trinsic:initial-cell-value
     ((client extrinsic-client) (name (eql 'cl:*standard-output*)) (type (eql 'cl:variable)))
-  (cyclosis:make-synonym-stream '+standard-output+))
+  (make-instance 'cyclosis:synonym-stream :symbol '+standard-output+))
 
 (defmethod trinsic:initial-cell-value
     ((client extrinsic-client) (name (eql 'cl:*error-output*)) (type (eql 'cl:variable)))
-  (cyclosis:make-synonym-stream '+error-output+))
+  (make-instance 'cyclosis:synonym-stream :symbol '+error-output+))
 
 (defmethod trinsic:initial-cell-value
     ((client extrinsic-client) (name (eql 'cl:*trace-output*)) (type (eql 'cl:variable)))
-  (cyclosis:make-synonym-stream '+error-output+))
+  (make-instance 'cyclosis:synonym-stream :symbol '+error-output+))
 
 (defmethod trinsic:initial-cell-value
     ((client extrinsic-client) (name (eql 'cl:*terminal-io*)) (type (eql 'cl:variable)))
-  (cyclosis:make-synonym-stream '+terminal-io+))
+  (make-instance 'cyclosis:synonym-stream :symbol '+terminal-io+))
 
 (defmethod trinsic:initial-cell-value
     ((client extrinsic-client) (name (eql 'cl:*query-io*)) (type (eql 'cl:variable)))
-  (cyclosis:make-synonym-stream '+terminal-io+))
+  (make-instance 'cyclosis:synonym-stream :symbol '+terminal-io+))
 
 (defmethod trinsic:initial-cell-value
     ((client extrinsic-client) (name (eql 'cl:*debug-io*)) (type (eql 'cl:variable)))
-  (cyclosis:make-synonym-stream '+terminal-io+))
+  (make-instance 'cyclosis:synonym-stream :symbol '+terminal-io+))
 
 (defmethod cyclosis:whitespace-char-p ((client intrinsic-client) ch)
   #+ccl (ccl::whitespacep ch)
