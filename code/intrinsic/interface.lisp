@@ -33,31 +33,31 @@
                  :output-stream +standard-output+))
 
 (defmethod trinsic:initial-cell-value
-    ((client extrinsic-client) (name (eql 'cl:*standard-input*)) (type (eql 'cl:variable)))
+    ((client intrinsic-client) (name (eql 'cl:*standard-input*)) (type (eql 'cl:variable)))
   (make-instance 'cyclosis:synonym-stream :symbol '+standard-input+))
 
 (defmethod trinsic:initial-cell-value
-    ((client extrinsic-client) (name (eql 'cl:*standard-output*)) (type (eql 'cl:variable)))
+    ((client intrinsic-client) (name (eql 'cl:*standard-output*)) (type (eql 'cl:variable)))
   (make-instance 'cyclosis:synonym-stream :symbol '+standard-output+))
 
 (defmethod trinsic:initial-cell-value
-    ((client extrinsic-client) (name (eql 'cl:*error-output*)) (type (eql 'cl:variable)))
+    ((client intrinsic-client) (name (eql 'cl:*error-output*)) (type (eql 'cl:variable)))
   (make-instance 'cyclosis:synonym-stream :symbol '+error-output+))
 
 (defmethod trinsic:initial-cell-value
-    ((client extrinsic-client) (name (eql 'cl:*trace-output*)) (type (eql 'cl:variable)))
+    ((client intrinsic-client) (name (eql 'cl:*trace-output*)) (type (eql 'cl:variable)))
   (make-instance 'cyclosis:synonym-stream :symbol '+error-output+))
 
 (defmethod trinsic:initial-cell-value
-    ((client extrinsic-client) (name (eql 'cl:*terminal-io*)) (type (eql 'cl:variable)))
+    ((client intrinsic-client) (name (eql 'cl:*terminal-io*)) (type (eql 'cl:variable)))
   (make-instance 'cyclosis:synonym-stream :symbol '+terminal-io+))
 
 (defmethod trinsic:initial-cell-value
-    ((client extrinsic-client) (name (eql 'cl:*query-io*)) (type (eql 'cl:variable)))
+    ((client intrinsic-client) (name (eql 'cl:*query-io*)) (type (eql 'cl:variable)))
   (make-instance 'cyclosis:synonym-stream :symbol '+terminal-io+))
 
 (defmethod trinsic:initial-cell-value
-    ((client extrinsic-client) (name (eql 'cl:*debug-io*)) (type (eql 'cl:variable)))
+    ((client intrinsic-client) (name (eql 'cl:*debug-io*)) (type (eql 'cl:variable)))
   (make-instance 'cyclosis:synonym-stream :symbol '+terminal-io+))
 
 (defmethod cyclosis:whitespace-char-p ((client intrinsic-client) ch)
